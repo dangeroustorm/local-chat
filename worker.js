@@ -1,45 +1,34 @@
 import { pipeline, TextStreamer, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3';
 
-// 禁用本地检索，允许浏览器缓存
+// 允许浏览器 HTTP 缓存，禁用本地查找
 env.allowLocalModels = false;
 env.useBrowserCache = true;
 
 const MODEL_ID = 'onnx-community/Apertus-v1.1-0.5B-Instruct-ONNX';
+let generator = null;
 
-class PipelineSingleton {
-  static task = 'text-generation';
-  static instance = null;
-
-  static async getInstance(progress_callback = null) {
-    if (this.instance === null) {
-      this.instance = pipeline(this.task, MODEL_ID, {
-        device: 'webgpu',
-        dtype: 'q4',
-        config: { model_type: 'llama' }, // 覆写 model_type 避开解析异常
-        progress_callback,
-      });
-    }
-    return this.instance;
-  }
-}
-
-// 监听主线程指令
 self.addEventListener('message', async (e) => {
   const { type, data } = e.data;
 
   if (type === 'load') {
     try {
-      await PipelineSingleton.getInstance((progress) => {
-        self.postMessage({ status: 'progress', progress });
+      // 显式覆写 model_type 为 llama，使 Transformers.js v3 正确映射 Apertus 的底层 GQA 架构
+      generator = await pipeline('text-generation', MODEL_ID, {
+        device: 'webgpu',
+        dtype: 'q4',
+        config: { model_type: 'llama' },
+        progress_callback: (p) => {
+          self.postMessage({ status: 'progress', detail: p });
+        }
       });
+
       self.postMessage({ status: 'ready' });
-    } catch (error) {
-      self.postMessage({ status: 'error', error: error.message });
+    } catch (err) {
+      console.error('Worker Inner Load Error:', err);
+      self.postMessage({ status: 'error', error: err.message || String(err) });
     }
   } else if (type === 'generate') {
     try {
-      const generator = await PipelineSingleton.getInstance();
-      
       const streamer = new TextStreamer(generator.tokenizer, {
         skip_prompt: true,
         skip_special_tokens: true,
@@ -61,8 +50,9 @@ self.addEventListener('message', async (e) => {
       });
 
       self.postMessage({ status: 'complete' });
-    } catch (error) {
-      self.postMessage({ status: 'error', error: error.message });
+    } catch (err) {
+      console.error('Worker Generation Error:', err);
+      self.postMessage({ status: 'error', error: err.message || String(err) });
     }
   }
 });
