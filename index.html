@@ -193,14 +193,29 @@
 
   <!-- WebGPU & Pipeline Logic -->
   <script type="module">
-    import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3';
+    import { AutoModelForCausalLM, AutoTokenizer, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3';
+
+const MODEL_ID = 'onnx-community/Apertus-v1.1-0.5B-Instruct-ONNX';
+
+// 1. 先加载 Tokenizer
+const tokenizer = await AutoTokenizer.from_pretrained(MODEL_ID);
+
+// 2. 加载 Model 并显式允许处理外部数据文件
+const model = await AutoModelForCausalLM.from_pretrained(MODEL_ID, {
+  device: 'webgpu',
+  dtype: 'q4',
+  config: { model_type: 'llama' },
+  // 显式指定 ONNX 执行选项，允许拉取外部权重文件
+  session_options: {
+    executionProviders: ['webgpu']
+  }
+});
 
     // 禁用本地查找，允许浏览器 HTTP Cache 缓存
     env.allowLocalModels = false;
     env.useBrowserCache = true;
 
-    // 官方发布的 Apertus 0.5B ONNX 权重仓库
-    const MODEL_ID = 'onnx-community/Apertus-v1.1-0.5B-Instruct-ONNX';
+    
 
     let generator = null;
     let isLoading = false;
