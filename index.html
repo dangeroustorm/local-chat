@@ -5,12 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WebGPU Local AI Chat</title>
 
-  <!-- Tailwind CSS & Font Awesome Icons -->
+  <!-- Tailwind CSS & Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
   <style>
-    /* iMessage 风格气泡 */
     .imessage-bubble-user {
       background-color: #007AFF;
       color: #FFFFFF;
@@ -32,14 +31,12 @@
       }
     }
 
-    /* 隐藏滚动条 */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
 <body class="h-full bg-slate-100 dark:bg-zinc-950 text-slate-800 dark:text-slate-100 antialiased flex flex-col items-center justify-center p-0 sm:p-4">
 
-  <!-- 模拟 iOS 容器 -->
   <div class="w-full max-w-md h-full sm:h-[720px] bg-white dark:bg-zinc-900 sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-zinc-800 flex flex-col overflow-hidden relative">
 
     <!-- 顶栏 Header -->
@@ -59,33 +56,29 @@
       </span>
     </header>
 
-    <!-- 主体区域：三阶段视图 -->
+    <!-- 主体区域 -->
     <div id="main-content" class="flex-1 flex flex-col overflow-hidden relative">
 
-      <!-- ========================================== -->
-      <!-- 阶段 1：模型选择与技术声明                -->
-      <!-- ========================================== -->
+      <!-- 阶段 1：模型选择 -->
       <div id="view-intro" class="flex-1 p-5 flex flex-col justify-between overflow-y-auto space-y-4">
         
         <div class="space-y-4">
           <div class="text-center pt-2">
             <h2 class="text-base font-bold text-slate-900 dark:text-white">选择轻量 WebGPU 模型</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">模型大小均为 &lt; 1GB，单文件集成无加载冲突</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">单文件集成，已优化显存分配</p>
           </div>
 
-          <!-- 模型选择列表 -->
           <div class="space-y-2">
-            
-            <!-- 选项 1：SmolLM2 360M (欧洲/Hugging Face) -->
+            <!-- 选项 1：SmolLM2 360M (首选) -->
             <label class="block p-3 border-2 border-blue-500 bg-blue-50/50 dark:bg-blue-950/30 rounded-xl cursor-pointer transition-all model-option" onclick="selectModelOption(this, 'onnx-community/SmolLM2-360M-Instruct', 'SmolLM2 360M')">
               <div class="flex items-start justify-between">
                 <div class="space-y-0.5">
                   <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
                     <input type="radio" name="model_choice" checked class="text-blue-600 focus:ring-0" />
                     <span>SmolLM2 360M</span>
-                    <span class="px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 text-[9px] font-mono rounded">欧洲开源</span>
+                    <span class="px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 text-[9px] font-mono rounded">欧洲开源 · 推荐</span>
                   </div>
-                  <p class="text-[11px] text-slate-500 dark:text-slate-400">Hugging Face 研发，极致轻量，响应速度最快</p>
+                  <p class="text-[11px] text-slate-500 dark:text-slate-400">Hugging Face 研发，加载极快，输出零卡顿</p>
                 </div>
                 <span class="text-[10px] font-mono font-semibold text-slate-400">~220 MB</span>
               </div>
@@ -99,51 +92,29 @@
                     <input type="radio" name="model_choice" class="text-blue-600 focus:ring-0" />
                     <span>Qwen2.5 0.5B</span>
                   </div>
-                  <p class="text-[11px] text-slate-500 dark:text-slate-400">指令遵循能力优秀，多语言表达自然</p>
+                  <p class="text-[11px] text-slate-500 dark:text-slate-400">通用意图理解强，多语言表达优秀</p>
                 </div>
                 <span class="text-[10px] font-mono font-semibold text-slate-400">~350 MB</span>
               </div>
             </label>
-
-            <!-- 选项 3：Llama 3.2 1B -->
-            <label class="block p-3 border border-slate-200 dark:border-zinc-800 hover:border-slate-300 rounded-xl cursor-pointer transition-all model-option" onclick="selectModelOption(this, 'onnx-community/Llama-3.2-1B-Instruct', 'Llama 3.2 1B')">
-              <div class="flex items-start justify-between">
-                <div class="space-y-0.5">
-                  <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
-                    <input type="radio" name="model_choice" class="text-blue-600 focus:ring-0" />
-                    <span>Llama 3.2 1B</span>
-                  </div>
-                  <p class="text-[11px] text-slate-500 dark:text-slate-400">Meta 轻量旗舰，逻辑理解与综合能力更强</p>
-                </div>
-                <span class="text-[10px] font-mono font-semibold text-slate-400">~700 MB</span>
-              </div>
-            </label>
-
           </div>
 
-          <!-- 技术与安全说明 -->
           <div class="space-y-2 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
             <div class="p-2.5 bg-slate-50 dark:bg-zinc-800/50 rounded-lg border border-slate-100 dark:border-zinc-800">
               <i class="fa-solid fa-shield-halved text-emerald-500 mr-1"></i>
-              <strong>端侧安全：</strong>基于 Transformers.js v3 + ONNX Runtime Web 架构，神经网络推理完全在浏览器 GPU 显存内完成，数据无需发送至云端。
-            </div>
-            <div class="p-2.5 bg-slate-50 dark:bg-zinc-800/50 rounded-lg border border-slate-100 dark:border-zinc-800">
-              <i class="fa-solid fa-download text-blue-500 mr-1"></i>
-              <strong>资源缓存：</strong>首次加载需拉取所选模型的 4-bit 量化文件，后续将自动离线缓存。
+              <strong>端侧计算：</strong>数据不经过任何第三方 API，完全在浏览器显存内推导。
             </div>
           </div>
         </div>
 
         <button id="btn-start" onclick="checkAndStartLoading()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium text-sm rounded-xl transition-colors shadow-sm flex items-center justify-center space-x-2">
-          <span>确认选择并启动模型</span>
+          <span>初始化并加载模型</span>
           <i class="fa-solid fa-arrow-right text-xs"></i>
         </button>
 
       </div>
 
-      <!-- ========================================== -->
-      <!-- 阶段 2：硬件检测与资源下载                -->
-      <!-- ========================================== -->
+      <!-- 阶段 2：进度条 -->
       <div id="view-loading" class="hidden flex-1 p-6 flex flex-col items-center justify-center text-center space-y-6">
         <div class="relative w-16 h-16 flex items-center justify-center">
           <div class="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-zinc-800"></div>
@@ -152,8 +123,8 @@
         </div>
 
         <div class="space-y-2 w-full max-w-xs">
-          <h3 id="loading-title" class="text-sm font-semibold">正在初始化模型...</h3>
-          <p id="loading-subtext" class="text-xs text-slate-500 dark:text-slate-400">正在检查 WebGPU 硬件环境...</p>
+          <h3 id="loading-title" class="text-sm font-semibold">正在初始化...</h3>
+          <p id="loading-subtext" class="text-xs text-slate-500 dark:text-slate-400">正在申请 WebGPU 动态显存分配...</p>
           
           <div class="w-full bg-slate-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden mt-3">
             <div id="progress-bar" class="bg-blue-600 h-full w-0 transition-all duration-200"></div>
@@ -161,23 +132,20 @@
           <div id="progress-percent" class="text-[11px] font-mono text-slate-400 text-right">0%</div>
         </div>
 
-        <!-- 容错错误提示框 -->
         <div id="error-box" class="hidden w-full max-w-xs p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl text-left text-xs text-red-600 dark:text-red-400 space-y-1">
           <div class="font-bold flex items-center">
             <i class="fa-solid fa-circle-xmark mr-1.5"></i>
             <span>服务暂时不可用</span>
           </div>
-          <p id="error-message" class="text-[11px] leading-relaxed">WebGPU 初始化失败或网络资源加载异常。</p>
+          <p id="error-message" class="text-[11px] leading-relaxed"></p>
         </div>
 
-        <button id="btn-cancel" onclick="cancelLoading()" class="px-4 py-2 border border-slate-300 dark:border-zinc-700 text-xs text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors">
-          取消并返回
+        <button id="btn-cancel" onclick="cancelLoading()" class="px-4 py-2 border border-slate-300 dark:border-zinc-700 text-xs text-slate-600 dark:text-slate-400 rounded-lg">
+          返回
         </button>
       </div>
 
-      <!-- ========================================== -->
-      <!-- 阶段 3：iMessage 对话界面                  -->
-      <!-- ========================================== -->
+      <!-- 阶段 3：对话界面 -->
       <div id="view-chat" class="hidden flex-1 flex flex-col h-full overflow-hidden">
         
         <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 no-scrollbar">
@@ -189,7 +157,7 @@
 
           <div class="flex flex-col items-start space-y-1 max-w-[82%]">
             <div class="imessage-bubble-ai px-3.5 py-2 text-xs sm:text-sm leading-snug shadow-sm">
-              Hello! I am ready to assist you. Ask me anything!
+              Hello! I am running locally in your browser. Ask me anything!
             </div>
             <span class="text-[9px] text-slate-400 px-1">Local AI</span>
           </div>
@@ -206,7 +174,7 @@
           <button 
             type="submit" 
             id="btn-send"
-            class="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            class="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-40 shrink-0"
           >
             <i class="fa-solid fa-arrow-up text-xs"></i>
           </button>
@@ -217,15 +185,12 @@
     </div>
   </div>
 
-  <!-- JavaScript WebGPU Pipeline Engine (Single File Module) -->
   <script type="module">
     import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3';
 
-    // 允许 HTTP 缓存，禁用本地找不到文件时的错误检索
     env.allowLocalModels = false;
     env.useBrowserCache = true;
 
-    // 当前选中的模型路径与简称
     let selectedModelId = 'onnx-community/SmolLM2-360M-Instruct';
     let selectedModelName = 'SmolLM2 360M';
 
@@ -235,13 +200,11 @@
     let chatHistory = [];
     const fileProgressMap = {};
 
-    // 绑定函数到 window 作用域
     window.selectModelOption = selectModelOption;
     window.checkAndStartLoading = checkAndStartLoading;
     window.cancelLoading = cancelLoading;
     window.handleSend = handleSend;
 
-    // 选择模型选项 UI
     function selectModelOption(elem, modelId, modelName) {
       document.querySelectorAll('.model-option').forEach(el => {
         el.className = 'block p-3 border border-slate-200 dark:border-zinc-800 hover:border-slate-300 rounded-xl cursor-pointer transition-all model-option';
@@ -257,15 +220,14 @@
       selectedModelName = modelName;
     }
 
-    // 硬件检测与启动
     async function checkAndStartLoading() {
       switchView('view-loading');
       document.getElementById('loading-title').innerText = `正在加载 ${selectedModelName}`;
-      document.getElementById('status-badge').innerText = '检测 WebGPU...';
+      document.getElementById('status-badge').innerText = '配置 WebGPU...';
       document.getElementById('error-box').classList.add('hidden');
 
       if (!('gpu' in navigator)) {
-        showError('当前浏览器不支持 WebGPU，请更新至最新 Chrome、Edge 或 Safari，并在 HTTP/HTTPS 服务下运行。');
+        showError('当前浏览器不支持 WebGPU，请使用 Chrome 或 Edge 浏览器。');
         return;
       }
 
@@ -276,7 +238,16 @@
           return;
         }
 
-        const device = await adapter.requestDevice();
+        // 核心修复 1：扩大 WebGPU 动态 Storage Buffer 上限，防止大权重内存报错
+        const requiredLimits = {};
+        if (adapter.limits.maxStorageBufferBindingSize) {
+          requiredLimits.maxStorageBufferBindingSize = adapter.limits.maxStorageBufferBindingSize;
+        }
+        if (adapter.limits.maxBufferSize) {
+          requiredLimits.maxBufferSize = adapter.limits.maxBufferSize;
+        }
+
+        const device = await adapter.requestDevice({ requiredLimits });
         if (!device) {
           showError('WebGPU 设备初始化失败。');
           return;
@@ -284,21 +255,21 @@
 
         startModelLoading();
       } catch (err) {
-        console.error('WebGPU Init Error:', err);
-        showError('WebGPU 发生错误: ' + err.message);
+        console.error('WebGPU Limit Config Error:', err);
+        // 如果自定义 Limit 报错，后备不带 limit 再次尝试
+        startModelLoading();
       }
     }
 
-    // 模型资源下载与编译
     async function startModelLoading() {
       isLoading = true;
-      document.getElementById('loading-subtext').innerText = '正在请求模型权重...';
-      document.getElementById('status-badge').innerText = '下载中...';
+      document.getElementById('loading-subtext').innerText = '正在请求模型权重文件...';
+      document.getElementById('status-badge').innerText = '下载权重...';
 
       try {
         generator = await pipeline('text-generation', selectedModelId, {
           device: 'webgpu',
-          dtype: 'q4', // 4-bit 量化
+          dtype: 'q4',
           progress_callback: (p) => {
             if (!isLoading) return;
 
@@ -311,9 +282,9 @@
 
               document.getElementById('progress-bar').style.width = `${totalProgress}%`;
               document.getElementById('progress-percent').innerText = `${totalProgress}%`;
-              document.getElementById('loading-subtext').innerText = `正在下载 ONNX 权重 (${totalProgress}%)`;
+              document.getElementById('loading-subtext').innerText = `下载权重中 (${totalProgress}%)`;
             } else if (p.status === 'ready') {
-              document.getElementById('loading-subtext').innerText = '模型正在编译至显存...';
+              document.getElementById('loading-subtext').innerText = '权重编译至显存...';
             }
           }
         });
@@ -326,24 +297,12 @@
         document.getElementById('status-badge').innerText = '在线 (WebGPU)';
         document.getElementById('status-badge').className = 'text-[11px] text-emerald-500 font-medium';
 
-        // 页面卸载提醒
-        window.addEventListener('beforeunload', handleBeforeUnload);
-
         switchView('view-chat');
 
       } catch (error) {
         console.error('Model Load Error:', error);
         isLoading = false;
-        showError('服务暂时不可用：资源下载失败或 WebGPU 编译异常。');
-      }
-    }
-
-    function handleBeforeUnload(e) {
-      if (isLoaded) {
-        const warnText = '下次使用需重新加载模型。';
-        e.preventDefault();
-        e.returnValue = warnText;
-        return warnText;
+        showError('服务暂时不可用：无法加载此模型资源。建议尝试 SmolLM2 360M 模型。');
       }
     }
 
@@ -363,7 +322,6 @@
       switchView('view-intro');
     }
 
-    // 消息对话逻辑
     async function handleSend(e) {
       e.preventDefault();
       const input = document.getElementById('chat-input');
@@ -377,7 +335,6 @@
 
       const chatContainer = document.getElementById('chat-messages');
 
-      // 用户气泡
       const userBubbleWrap = document.createElement('div');
       userBubbleWrap.className = 'flex flex-col items-end space-y-1 max-w-[82%] ml-auto';
       userBubbleWrap.innerHTML = `
@@ -387,7 +344,6 @@
       `;
       chatContainer.appendChild(userBubbleWrap);
 
-      // AI 占位气泡
       const aiBubbleWrap = document.createElement('div');
       aiBubbleWrap.className = 'flex flex-col items-start space-y-1 max-w-[82%]';
       
@@ -402,26 +358,29 @@
       chatContainer.scrollTop = chatContainer.scrollHeight;
 
       const messages = [
-        { role: 'system', content: 'You are a helpful AI assistant.' },
+        { role: 'system', content: 'You are a helpful assistant.' },
         ...chatHistory,
         { role: 'user', content: text }
       ];
 
       let generatedResponse = '';
 
+      // 核心修复 2：在打字机回调中增加 await 释放事件循环，防止 UI 渲染卡死
       const streamer = new TextStreamer(generator.tokenizer, {
         skip_prompt: true,
         skip_special_tokens: true,
-        callback_function: (tokenText) => {
+        callback_function: async (tokenText) => {
           generatedResponse += tokenText;
           aiBubble.innerText = generatedResponse;
           chatContainer.scrollTop = chatContainer.scrollHeight;
+          // 让出主线程微任务队列，强制渲染 DOM
+          await new Promise(resolve => setTimeout(resolve, 0));
         }
       });
 
       try {
         await generator(messages, {
-          max_new_tokens: 256,
+          max_new_tokens: 128,
           temperature: 0.6,
           streamer: streamer
         });
@@ -431,7 +390,7 @@
 
       } catch (err) {
         console.error('Inference Error:', err);
-        aiBubble.innerHTML = `<span class="text-red-500 font-medium"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 推理发生错误</span>`;
+        aiBubble.innerHTML = `<span class="text-red-500 font-medium"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 推理异常</span>`;
       } finally {
         sendBtn.disabled = false;
         chatContainer.scrollTop = chatContainer.scrollHeight;
