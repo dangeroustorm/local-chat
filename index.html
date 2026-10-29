@@ -184,7 +184,7 @@
     </div>
   </div>
 
-  <script>
+    <script>
     // 后台 Web Worker 内核脚本代码（内联构建，避免多文件问题）
     const workerScriptCode = `
       import { pipeline, TextStreamer, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3';
@@ -223,14 +223,13 @@
               skip_prompt: true,
               skip_special_tokens: true,
               callback_function: (tokenText) => {
-                // 每生成一个词，即刻给主线程发送事件通知
                 self.postMessage({ status: 'update', token: tokenText });
               }
             });
 
             const messages = [
               { role: 'system', content: 'You are a helpful assistant.' },
-              ...data.history,
+              ...(data.history || []),
               { role: 'user', content: data.text }
             ];
 
@@ -253,6 +252,7 @@
     let selectedModelName = 'SmolLM2 360M';
 
     let aiWorker = null;
+    let workerUrl = null; // 用于后续释放内存
     let chatHistory = [];
     let currentAiBubble = null;
 
@@ -278,7 +278,7 @@
       document.getElementById('error-box').classList.add('hidden');
 
       if (!('gpu' in navigator)) {
-        showError('当前浏览器不支持 WebGPU，请使用 Chrome 或 Edge 浏览器。');
+        showError('当前浏览器不支持 WebGPU，请使用最新版 Chrome 或 Edge 浏览器。');
         return;
       }
 
@@ -289,9 +289,8 @@
           return;
         }
 
-        // 创建 Worker 实例
         const blob = new Blob([workerScriptCode], { type: 'application/javascript' });
-        const workerUrl = URL.createObjectURL(blob);
+        workerUrl = URL.createObjectURL(blob);
         
         aiWorker = new Worker(workerUrl, { type: 'module' });
 
@@ -314,19 +313,22 @@
             document.getElementById('status-badge').className = 'text-[11px] text-emerald-500 font-medium';
             switchView('view-chat');
           } else if (status === 'update') {
-            // 收到 Token，实时无卡顿更新 DOM 气泡
             if (currentAiBubble) {
               currentAiBubble.innerText += token;
               scrollChat();
             }
           } else if (status === 'complete') {
             document.getElementById('btn-send').disabled = false;
+            // 【修复 3】将 AI 的完整回复存入历史记录，支持多轮对话
+            if (currentAiBubble) {
+              chatHistory.push({ role: 'assistant', content: currentAiBubble.innerText });
+              currentAiBubble = null; // 重置引用，为下一次对话做准备
+            }
           } else if (status === 'error') {
             showError(error);
           }
         };
 
-        // 发送模型初始化命令
         aiWorker.postMessage({ type: 'load', data: { modelId: selectedModelId } });
 
       } catch (err) {
@@ -335,7 +337,8 @@
       }
     }
 
-    function sendMessage(e) {
+    // 【修复 1】函数名从 sendMessage 改为 handleSend，匹配 HTML 中的 onsubmit
+    function handleSend(e) {
       e.preventDefault();
       const input = document.getElementById('chat-input');
       const text = input.value.trim();
@@ -363,10 +366,14 @@
       
       currentAiBubble = document.createElement('div');
       currentAiBubble.className = 'imessage-bubble-ai px-3.5 py-2 text-xs sm:text-sm leading-snug shadow-sm break-words';
-      currentAiBubble.innerText = ''; // 准备接收 Token 流
       
+      const modelLabel = document.createElement('span');
+      modelLabel.className = 'text-[9px] text-slate-400 px-1';
+      modelLabel.innerText = selectedModelName;
+
+      // 【修复 2】使用 appendChild 替代 innerHTML +=，防止 DOM 引用丢失
       aiBubbleWrap.appendChild(currentAiBubble);
-      aiBubbleWrap.innerHTML += `<span class="text-[9px] text-slate-400 px-1">${selectedModelName}</span>`;
+      aiBubbleWrap.appendChild(modelLabel);
       chatContainer.appendChild(aiBubbleWrap);
 
       scrollChat();
@@ -392,6 +399,11 @@
       if (aiWorker) {
         aiWorker.terminate();
         aiWorker = null;
+      }
+      // 【优化】释放 Blob URL，防止内存泄漏
+      if (workerUrl) {
+        URL.revokeObjectURL(workerUrl);
+        workerUrl = null;
       }
       document.getElementById('status-badge').innerText = '未就绪';
       document.getElementById('status-badge').className = 'text-[11px] text-slate-500';
