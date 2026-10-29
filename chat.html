@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebGPU Local AI Chat</title>
+
+  <!-- Cross-Origin Isolation Script -->
+  <script src="coi-serviceworker.js"></script>
+
+  <!-- Tailwind CSS & Font Awesome Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    .imessage-bubble-user {
+      background-color: #007AFF;
+      color: #FFFFFF;
+      border-radius: 18px;
+      border-bottom-right-radius: 4px;
+    }
+
+    .imessage-bubble-ai {
+      background-color: #E9E9EB;
+      color: #000000;
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .imessage-bubble-ai {
+        background-color: #262628;
+        color: #FFFFFF;
+      }
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="h-full bg-slate-100 dark:bg-zinc-950 text-slate-800 dark:text-slate-100 antialiased flex flex-col items-center justify-center p-0 sm:p-4">
+
+  <!-- Main Container -->
+  <div class="w-full max-w-md h-full sm:h-[720px] bg-white dark:bg-zinc-900 sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-zinc-800 flex flex-col overflow-hidden relative">
+
+    <!-- Header -->
+    <header class="px-4 py-3 bg-slate-50/90 dark:bg-zinc-900/90 backdrop-blur border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between shrink-0 z-10">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+          <i class="fa-solid fa-microchip"></i>
+        </div>
+        <div>
+          <h1 id="header-model-name" class="text-sm font-semibold leading-none">WebGPU AI Chat</h1>
+          <span id="status-badge" class="text-[11px] text-slate-500 dark:text-slate-400" data-i18n="statusNotReady">Not Ready</span>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <!-- Language Selector -->
+        <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-slate-100 dark:bg-zinc-800 border border-slate-300 dark:border-zinc-700 text-xs text-slate-700 dark:text-slate-200 rounded-lg px-2 py-1 focus:outline-none cursor-pointer">
+          <option value="en" selected>EN</option>
+          <option value="fr">FR</option>
+          <option value="de">DE</option>
+        </select>
+        
+        <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-medium rounded-full" data-i18n="statusWorker">
+          Worker
+        </span>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div id="main-content" class="flex-1 flex flex-col overflow-hidden relative">
+
+      <!-- View 1: Model Selection -->
+      <div id="view-intro" class="flex-1 p-5 flex flex-col justify-between overflow-y-auto space-y-4">
+        
+        <div class="space-y-4">
+          <div class="text-center pt-2">
+            <h2 class="text-base font-bold text-slate-900 dark:text-white" data-i18n="selectModelTitle">Select On-Device AI Model</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5" data-i18n="selectModelSubtitle">Runs in background thread with zero UI lag</p>
+          </div>
+
+          <div class="space-y-2.5">
+            <!-- Option 1: Qwen2.5 0.5B -->
+            <label class="block p-3 border-2 border-blue-500 bg-blue-50/50 dark:bg-blue-950/30 rounded-xl cursor-pointer transition-all model-option" onclick="selectModelOption(this, 'onnx-community/Qwen2.5-0.5B-Instruct', 'Qwen2.5 0.5B')">
+              <div class="flex items-start justify-between">
+                <div class="space-y-0.5">
+                  <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
+                    <input type="radio" name="model_choice" checked class="text-blue-600 focus:ring-0" />
+                    <span data-i18n="qwenName">Qwen2.5 0.5B</span>
+                    <span class="px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 text-[9px] font-mono rounded" data-i18n="badgeRecommended">Recommended</span>
+                  </div>
+                  <p class="text-[11px] text-slate-500 dark:text-slate-400" data-i18n="qwenDesc">Strong general understanding, excellent multilingual capability</p>
+                </div>
+                <span class="text-[10px] font-mono font-semibold text-slate-400" data-i18n="qwenSize">~350 MB</span>
+              </div>
+            </label>
+
+            <!-- Option 2: Llama 3.2 1B -->
+            <label class="block p-3 border border-slate-200 dark:border-zinc-800 hover:border-slate-300 rounded-xl cursor-pointer transition-all model-option" onclick="selectModelOption(this, 'onnx-community/Llama-3.2-1B-Instruct', 'Llama 3.2 1B')">
+              <div class="flex items-start justify-between">
+                <div class="space-y-0.5">
+                  <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
+                    <input type="radio" name="model_choice" class="text-blue-600 focus:ring-0" />
+                    <span data-i18n="llamaName">Llama 3.2 1B</span>
+                  </div>
+                  <p class="text-[11px] text-slate-500 dark:text-slate-400" data-i18n="llamaDesc">Meta lightweight model with strong reasoning capability</p>
+                </div>
+                <span class="text-[10px] font-mono font-semibold text-slate-400" data-i18n="llamaSize">~700 MB</span>
+              </div>
+            </label>
+          </div>
+
+          <div class="p-2.5 bg-slate-50 dark:bg-zinc-800/50 rounded-lg border border-slate-100 dark:border-zinc-800 text-[11px] text-slate-600 dark:text-slate-400">
+            <i class="fa-solid fa-shield-halved text-emerald-500 mr-1"></i>
+            <strong data-i18n="securityNoteTitle">On-Device Security:</strong>
+            <span data-i18n="securityNoteDesc">Data stays in your browser memory and is never sent to any cloud server.</span>
+          </div>
+        </div>
+
+        <button id="btn-start" onclick="checkAndStartLoading()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium text-sm rounded-xl transition-colors shadow-sm flex items-center justify-center space-x-2">
+          <span data-i18n="btnInit">Initialize & Load Model</span>
+          <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+
+      </div>
+
+      <!-- View 2: Progress Screen -->
+      <div id="view-loading" class="hidden flex-1 p-6 flex flex-col items-center justify-center text-center space-y-6">
+        <div class="relative w-16 h-16 flex items-center justify-center">
+          <div class="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-zinc-800"></div>
+          <div id="loading-spinner" class="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
+          <i class="fa-solid fa-cube text-blue-600 text-lg"></i>
+        </div>
+
+        <div class="space-y-2 w-full max-w-xs">
+          <h3 id="loading-title" class="text-sm font-semibold" data-i18n="loadingTitle">Initializing...</h3>
+          <p id="loading-subtext" class="text-xs text-slate-500 dark:text-slate-400" data-i18n="loadingSubtext">Starting background Worker thread...</p>
+          
+          <div class="w-full bg-slate-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden mt-3">
+            <div id="progress-bar" class="bg-blue-600 h-full w-0 transition-all duration-200"></div>
+          </div>
+          <div id="progress-percent" class="text-[11px] font-mono text-slate-400 text-right">0%</div>
+        </div>
+
+        <div id="error-box" class="hidden w-full max-w-xs p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl text-left text-xs text-red-600 dark:text-red-400 space-y-1">
+          <div class="font-bold flex items-center">
+            <i class="fa-solid fa-circle-xmark mr-1.5"></i>
+            <span data-i18n="errorTitle">Service Temporarily Unavailable</span>
+          </div>
+          <p id="error-message" class="text-[11px] leading-relaxed"></p>
+        </div>
+
+        <button id="btn-cancel" onclick="cancelLoading()" class="px-4 py-2 border border-slate-300 dark:border-zinc-700 text-xs text-slate-600 dark:text-slate-400 rounded-lg" data-i18n="btnReturn">
+          Return
+        </button>
+      </div>
+
+      <!-- View 3: Chat Interface -->
+      <div id="view-chat" class="hidden flex-1 flex flex-col h-full overflow-hidden">
+        
+        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 no-scrollbar w-full">
+          <div class="text-center my-1">
+            <span id="chat-badge-model" class="text-[10px] text-slate-400 bg-slate-200/50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full font-mono" data-i18n="chatBadge">
+              WebGPU Worker Ready
+            </span>
+          </div>
+
+          <div class="flex flex-col items-start space-y-1 max-w-[85%] mr-auto w-full">
+            <div class="imessage-bubble-ai px-3.5 py-2 text-xs sm:text-sm leading-snug shadow-sm max-w-[85%] break-words whitespace-pre-wrap overflow-hidden font-sans" data-i18n="welcomeAi">
+              Hello! I am ready to assist you. Type a message to test execution!
+            </div>
+            <span class="text-[9px] text-slate-400 px-1">Local AI</span>
+          </div>
+        </div>
+
+        <form onsubmit="handleSend(event)" class="p-3 bg-slate-50/90 dark:bg-zinc-900/90 border-t border-slate-200 dark:border-zinc-800 flex items-center space-x-2 shrink-0">
+          <input 
+            type="text" 
+            id="chat-input" 
+            placeholder="iMessage" 
+            data-i18n-placeholder="inputPlaceholder"
+            autocomplete="off"
+            class="flex-1 px-4 py-2 bg-white dark:bg-zinc-800 border border-slate-300 dark:border-zinc-700 rounded-full text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-400"
+          />
+          <button 
+            type="submit" 
+            id="btn-send"
+            class="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-40 shrink-0"
+          >
+            <i class="fa-solid fa-arrow-up text-xs"></i>
+          </button>
+        </form>
+
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Embedded Web Worker Logic
+    const workerScriptCode = `
+      import { pipeline, TextStreamer, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3';
+
+      env.allowLocalModels = false;
+      env.useBrowserCache = true;
+
+      let generator = null;
+      let fileProgressMap = {};
+
+      self.addEventListener('message', async (e) => {
+        const { type, data } = e.data;
+
+        if (type === 'load') {
+          try {
+            fileProgressMap = {};
+            generator = await pipeline('text-generation', data.modelId, {
+              device: 'webgpu',
+              dtype: 'q4',
+              progress_callback: (p) => {
+                if (p.status === 'progress') {
+                  fileProgressMap[p.file || 'model'] = p.progress || 0;
+                  const files = Object.keys(fileProgressMap);
+                  const pct = Math.round(files.reduce((sum, k) => sum + fileProgressMap[k], 0) / (files.length || 1));
+                  self.postMessage({ status: 'progress', percent: pct });
+                }
+              }
+            });
+
+            self.postMessage({ status: 'ready' });
+          } catch (err) {
+            self.postMessage({ status: 'error', error: err.message || String(err) });
+          }
+        } else if (type === 'generate') {
+          try {
+            const streamer = new TextStreamer(generator.tokenizer, {
+              skip_prompt: true,
+              skip_special_tokens: true,
+              callback_function: (tokenText) => {
+                self.postMessage({ status: 'update', token: tokenText });
+              }
+            });
+
+            const messages = [
+              { role: 'system', content: 'You are a helpful assistant.' },
+              ...(data.history || []),
+              { role: 'user', content: data.text }
+            ];
+
+            await generator(messages, {
+              max_new_tokens: 128,
+              temperature: 0.6,
+              do_sample: true,
+              streamer: streamer
+            });
+
+            self.postMessage({ status: 'complete' });
+          } catch (err) {
+            self.postMessage({ status: 'error', error: err.message || String(err) });
+          }
+        }
+      });
+    `;
+
+    // Multilingual Translations Dictionary (EN, FR, DE)
+    const translations = {
+      en: {
+        appTitle: "WebGPU AI Chat",
+        statusNotReady: "Not Ready",
+        statusWorker: "Worker",
+        statusLoading: "Starting Worker...",
+        statusDownloading: "Downloading Weights...",
+        statusReady: "Online (WebGPU)",
+        statusFailed: "Load Failed",
+        selectModelTitle: "Select On-Device AI Model",
+        selectModelSubtitle: "Runs in background thread with zero UI lag",
+        qwenName: "Qwen2.5 0.5B",
+        qwenDesc: "Strong general understanding, excellent multilingual capability",
+        qwenSize: "~350 MB",
+        llamaName: "Llama 3.2 1B",
+        llamaDesc: "Meta lightweight model with strong reasoning capability",
+        llamaSize: "~700 MB",
+        badgeRecommended: "Recommended",
+        securityNoteTitle: "On-Device Security:",
+        securityNoteDesc: "Data stays in your browser memory and is never sent to any cloud server.",
+        btnInit: "Initialize & Load Model",
+        loadingTitle: "Initializing...",
+        loadingSubtext: "Starting background Worker thread...",
+        errorTitle: "Service Temporarily Unavailable",
+        btnReturn: "Return",
+        chatBadge: "WebGPU Worker Ready",
+        welcomeAi: "Hello! I am ready to assist you. Type a message to test execution!",
+        inputPlaceholder: "iMessage",
+        errTryOther: "Failed to load {currentModel}. Please try loading {otherModel} instead.",
+        errTryLater: "Both models failed to load. Please try again later or verify WebGPU support."
+      },
+      fr: {
+        appTitle: "Chat IA WebGPU",
+        statusNotReady: "Non prêt",
+        statusWorker: "Worker",
+        statusLoading: "Démarrage...",
+        statusDownloading: "Téléchargement...",
+        statusReady: "En ligne (WebGPU)",
+        statusFailed: "Échec",
+        selectModelTitle: "Sélectionner un modèle local",
+        selectModelSubtitle: "S'exécute en arrière-plan sans ralentissement de l'interface",
+        qwenName: "Qwen2.5 0.5B",
+        qwenDesc: "Excellente compréhension générale et capacités multilingues",
+        qwenSize: "~350 Mo",
+        llamaName: "Llama 3.2 1B",
+        llamaDesc: "Modèle léger de Meta avec une forte capacité de raisonnement",
+        llamaSize: "~700 Mo",
+        badgeRecommended: "Recommandé",
+        securityNoteTitle: "Sécurité locale :",
+        securityNoteDesc: "Les données restent dans la mémoire du navigateur et ne sont jamais envoyées à un serveur.",
+        btnInit: "Initialiser et charger le modèle",
+        loadingTitle: "Initialisation...",
+        loadingSubtext: "Démarrage du thread Worker en arrière-plan...",
+        errorTitle: "Service temporairement indisponible",
+        btnReturn: "Retour",
+        chatBadge: "WebGPU Worker Prêt",
+        welcomeAi: "Bonjour ! Je suis prêt à vous aider. Tapez un message pour tester !",
+        inputPlaceholder: "iMessage",
+        errTryOther: "Échec du chargement de {currentModel}. Veuillez essayer de charger {otherModel}.",
+        errTryLater: "Échec du chargement des deux modèles. Veuillez réessayer plus tard."
+      },
+      de: {
+        appTitle: "WebGPU KI-Chat",
+        statusNotReady: "Nicht bereit",
+        statusWorker: "Worker",
+        statusLoading: "Worker startet...",
+        statusDownloading: "Gewichte herunterladen...",
+        statusReady: "Online (WebGPU)",
+        statusFailed: "Fehlgeschlagen",
+        selectModelTitle: "Lokales KI-Modell auswählen",
+        selectModelSubtitle: "Läuft im Hintergrund ohne UI-Verzögerung",
+        qwenName: "Qwen2.5 0.5B",
+        qwenDesc: "Starkes allgemeines Verständnis, hervorragend mehrsprachig",
+        qwenSize: "~350 MB",
+        llamaName: "Llama 3.2 1B",
+        llamaDesc: "Leichtes Meta-Modell mit starker Argumentationsfähigkeit",
+        llamaSize: "~700 MB",
+        badgeRecommended: "Empfohlen",
+        securityNoteTitle: "Lokale Sicherheit:",
+        securityNoteDesc: "Daten verbleiben im Speichers des Browsers und werden nicht an Server gesendet.",
+        btnInit: "Initialisieren & Modell laden",
+        loadingTitle: "Initialisierung...",
+        loadingSubtext: "Starten des Hintergrund-Worker-Threads...",
+        errorTitle: "Dienst vorübergehend nicht verfügbar",
+        btnReturn: "Zurück",
+        chatBadge: "WebGPU Worker Bereit",
+        welcomeAi: "Hallo! Ich bin bereit, Ihnen zu helfen. Schreiben Sie eine Nachricht, um zu testen!",
+        inputPlaceholder: "iMessage",
+        errTryOther: "Laden von {currentModel} fehlgeschlagen. Bitte versuchen Sie stattdessen {otherModel} zu laden.",
+        errTryLater: "Beide Modelle konnten nicht geladen werden. Bitte versuchen Sie es später erneut."
+      }
+    };
+
+    let currentLang = 'en';
+    let selectedModelId = 'onnx-community/Qwen2.5-0.5B-Instruct';
+    let selectedModelName = 'Qwen2.5 0.5B';
+
+    // Track failed model loads
+    const failedModels = new Set();
+
+    let aiWorker = null;
+    let chatHistory = [];
+    let currentAiBubble = null;
+    let accumulatedResponse = '';
+
+    // Language Switcher Function
+    function changeLanguage(lang) {
+      if (!translations[lang]) return;
+      currentLang = lang;
+
+      // Update all data-i18n elements
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[lang][key]) {
+          el.innerText = translations[lang][key];
+        }
+      });
+
+      // Update placeholder attributes
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (translations[lang][key]) {
+          el.placeholder = translations[lang][key];
+        }
+      });
+    }
+
+    // Format text to fix missing space after punctuation
+    function formatTextSpacing(text) {
+      if (!text) return '';
+      // Ensure a space exists after punctuation marks (. , ! ? ; :) if followed immediately by a letter or digit
+      return text.replace(/([.,!?;:])([A-Za-z0-9])/g, '$1 $2');
+    }
+
+    function selectModelOption(elem, modelId, modelName) {
+      document.querySelectorAll('.model-option').forEach(el => {
+        el.className = 'block p-3 border border-slate-200 dark:border-zinc-800 hover:border-slate-300 rounded-xl cursor-pointer transition-all model-option';
+        const radio = el.querySelector('input[type="radio"]');
+        if (radio) radio.checked = false;
+      });
+
+      elem.className = 'block p-3 border-2 border-blue-500 bg-blue-50/50 dark:bg-blue-950/30 rounded-xl cursor-pointer transition-all model-option';
+      const currentRadio = elem.querySelector('input[type="radio"]');
+      if (currentRadio) currentRadio.checked = true;
+
+      selectedModelId = modelId;
+      selectedModelName = modelName;
+    }
+
+    async function checkAndStartLoading() {
+      switchView('view-loading');
+      document.getElementById('loading-title').innerText = `${translations[currentLang].loadingTitle} (${selectedModelName})`;
+      document.getElementById('status-badge').innerText = translations[currentLang].statusLoading;
+      document.getElementById('error-box').classList.add('hidden');
+
+      if (!('gpu' in navigator)) {
+        handleLoadFailure('WebGPU not supported by browser');
+        return;
+      }
+
+      try {
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) {
+          handleLoadFailure('No compatible WebGPU adapter found');
+          return;
+        }
+
+        const blob = new Blob([workerScriptCode], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(blob);
+        
+        aiWorker = new Worker(workerUrl, { type: 'module' });
+
+        aiWorker.onerror = (err) => {
+          console.error('Worker Fatal Error:', err);
+          handleLoadFailure(err.message || 'Worker thread initialization error');
+        };
+
+        aiWorker.onmessage = (e) => {
+          const { status, percent, token, error } = e.data;
+
+          if (status === 'progress') {
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+            document.getElementById('progress-percent').innerText = `${percent}%`;
+            document.getElementById('loading-subtext').innerText = `${translations[currentLang].statusDownloading} ${percent}%`;
+          } else if (status === 'ready') {
+            document.getElementById('header-model-name').innerText = selectedModelName;
+            document.getElementById('chat-badge-model').innerText = `${selectedModelName} (${translations[currentLang].statusReady})`;
+            document.getElementById('status-badge').innerText = translations[currentLang].statusReady;
+            document.getElementById('status-badge').className = 'text-[11px] text-emerald-500 font-medium';
+            switchView('view-chat');
+          } else if (status === 'update') {
+            if (currentAiBubble) {
+              accumulatedResponse += token;
+              // Apply formatting to ensure punctuation and word spacing is handled cleanly
+              currentAiBubble.innerText = formatTextSpacing(accumulatedResponse);
+              scrollChat();
+            }
+          } else if (status === 'complete') {
+            document.getElementById('btn-send').disabled = false;
+            if (currentAiBubble) {
+              chatHistory.push({ role: 'assistant', content: currentAiBubble.innerText });
+              currentAiBubble = null;
+            }
+          } else if (status === 'error') {
+            handleLoadFailure(error);
+          }
+        };
+
+        aiWorker.postMessage({ type: 'load', data: { modelId: selectedModelId } });
+
+      } catch (err) {
+        console.error('Init Worker Exception:', err);
+        handleLoadFailure(err.message);
+      }
+    }
+
+    function handleLoadFailure(rawError) {
+      failedModels.add(selectedModelId);
+
+      const otherModelName = (selectedModelId.includes('Qwen')) ? 'Llama 3.2 1B' : 'Qwen2.5 0.5B';
+      let userErrorMsg = '';
+
+      // Check if both Qwen and Llama have failed
+      if (failedModels.size >= 2) {
+        userErrorMsg = translations[currentLang].errTryLater;
+      } else {
+        userErrorMsg = translations[currentLang].errTryOther
+          .replace('{currentModel}', selectedModelName)
+          .replace('{otherModel}', otherModelName);
+      }
+
+      showError(userErrorMsg);
+    }
+
+    function sendMessage(e) {
+      e.preventDefault();
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+
+      if (!text || !aiWorker) return;
+
+      input.value = '';
+      document.getElementById('btn-send').disabled = true;
+
+      const chatContainer = document.getElementById('chat-messages');
+
+      // User Message
+      const userBubbleWrap = document.createElement('div');
+      userBubbleWrap.className = 'flex flex-col items-end space-y-1 max-w-[85%] ml-auto w-full';
+      userBubbleWrap.innerHTML = `
+        <div class="imessage-bubble-user px-3.5 py-2 text-xs sm:text-sm leading-snug shadow-sm max-w-[85%] break-words whitespace-pre-wrap overflow-hidden font-sans">
+          ${escapeHtml(text)}
+        </div>
+      `;
+      chatContainer.appendChild(userBubbleWrap);
+
+      // AI Message Wrapper
+      const aiBubbleWrap = document.createElement('div');
+      aiBubbleWrap.className = 'flex flex-col items-start space-y-1 max-w-[85%] mr-auto w-full';
+      
+      currentAiBubble = document.createElement('div');
+      currentAiBubble.className = 'imessage-bubble-ai px-3.5 py-2 text-xs sm:text-sm leading-snug shadow-sm max-w-[85%] break-words whitespace-pre-wrap overflow-hidden font-sans';
+      currentAiBubble.innerText = '';
+      accumulatedResponse = '';
+      
+      const modelLabel = document.createElement('span');
+      modelLabel.className = 'text-[9px] text-slate-400 px-1';
+      modelLabel.innerText = selectedModelName;
+
+      aiBubbleWrap.appendChild(currentAiBubble);
+      aiBubbleWrap.appendChild(modelLabel);
+      chatContainer.appendChild(aiBubbleWrap);
+
+      scrollChat();
+
+      aiWorker.postMessage({
+        type: 'generate',
+        data: { text, history: chatHistory }
+      });
+
+      chatHistory.push({ role: 'user', content: text });
+    }
+
+    function showError(msg) {
+      document.getElementById('loading-spinner').classList.add('hidden');
+      document.getElementById('error-message').innerText = msg;
+      document.getElementById('error-box').classList.remove('hidden');
+      document.getElementById('status-badge').innerText = translations[currentLang].statusFailed;
+      document.getElementById('status-badge').className = 'text-[11px] text-red-500 font-medium';
+    }
+
+    function cancelLoading() {
+      if (aiWorker) {
+        aiWorker.terminate();
+        aiWorker = null;
+      }
+      document.getElementById('status-badge').innerText = translations[currentLang].statusNotReady;
+      document.getElementById('status-badge').className = 'text-[11px] text-slate-500';
+      switchView('view-intro');
+    }
+
+    function switchView(viewId) {
+      ['view-intro', 'view-loading', 'view-chat'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      document.getElementById(viewId).classList.remove('hidden');
+    }
+
+    function scrollChat() {
+      const box = document.getElementById('chat-messages');
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    window.changeLanguage = changeLanguage;
+    window.selectModelOption = selectModelOption;
+    window.checkAndStartLoading = checkAndStartLoading;
+    window.cancelLoading = cancelLoading;
+    window.handleSend = sendMessage;
+  </script>
+</body>
+</html>
