@@ -37,6 +37,7 @@
 </head>
 <body class="h-full bg-slate-100 dark:bg-zinc-950 text-slate-800 dark:text-slate-100 antialiased flex flex-col items-center justify-center p-0 sm:p-4">
 
+  <!-- 容器 -->
   <div class="w-full max-w-md h-full sm:h-[720px] bg-white dark:bg-zinc-900 sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-zinc-800 flex flex-col overflow-hidden relative">
 
     <!-- 顶栏 Header -->
@@ -52,7 +53,7 @@
       </div>
       
       <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-medium rounded-full">
-        端侧推理
+        Worker 隔离
       </span>
     </header>
 
@@ -64,21 +65,21 @@
         
         <div class="space-y-4">
           <div class="text-center pt-2">
-            <h2 class="text-base font-bold text-slate-900 dark:text-white">选择轻量 WebGPU 模型</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">单文件集成，已优化显存分配</p>
+            <h2 class="text-base font-bold text-slate-900 dark:text-white">选择端侧 AI 模型</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">后台线程计算，UI 0 延迟卡顿</p>
           </div>
 
           <div class="space-y-2">
-            <!-- 选项 1：SmolLM2 360M (首选) -->
+            <!-- 选项 1：SmolLM2 360M (首选极速) -->
             <label class="block p-3 border-2 border-blue-500 bg-blue-50/50 dark:bg-blue-950/30 rounded-xl cursor-pointer transition-all model-option" onclick="selectModelOption(this, 'onnx-community/SmolLM2-360M-Instruct', 'SmolLM2 360M')">
               <div class="flex items-start justify-between">
                 <div class="space-y-0.5">
                   <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
                     <input type="radio" name="model_choice" checked class="text-blue-600 focus:ring-0" />
                     <span>SmolLM2 360M</span>
-                    <span class="px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 text-[9px] font-mono rounded">欧洲开源 · 推荐</span>
+                    <span class="px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 text-[9px] font-mono rounded">欧洲开源 · 极速</span>
                   </div>
-                  <p class="text-[11px] text-slate-500 dark:text-slate-400">Hugging Face 研发，加载极快，输出零卡顿</p>
+                  <p class="text-[11px] text-slate-500 dark:text-slate-400">Hugging Face 研发，体积极小，输出响应最快</p>
                 </div>
                 <span class="text-[10px] font-mono font-semibold text-slate-400">~220 MB</span>
               </div>
@@ -92,18 +93,16 @@
                     <input type="radio" name="model_choice" class="text-blue-600 focus:ring-0" />
                     <span>Qwen2.5 0.5B</span>
                   </div>
-                  <p class="text-[11px] text-slate-500 dark:text-slate-400">通用意图理解强，多语言表达优秀</p>
+                  <p class="text-[11px] text-slate-500 dark:text-slate-400">通用能力全面，多语言指令理解优秀</p>
                 </div>
                 <span class="text-[10px] font-mono font-semibold text-slate-400">~350 MB</span>
               </div>
             </label>
           </div>
 
-          <div class="space-y-2 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
-            <div class="p-2.5 bg-slate-50 dark:bg-zinc-800/50 rounded-lg border border-slate-100 dark:border-zinc-800">
-              <i class="fa-solid fa-shield-halved text-emerald-500 mr-1"></i>
-              <strong>端侧计算：</strong>数据不经过任何第三方 API，完全在浏览器显存内推导。
-            </div>
+          <div class="p-2.5 bg-slate-50 dark:bg-zinc-800/50 rounded-lg border border-slate-100 dark:border-zinc-800 text-[11px] text-slate-600 dark:text-slate-400">
+            <i class="fa-solid fa-bolt text-amber-500 mr-1"></i>
+            <strong>线程解耦更新：</strong>使用了 Web Worker 隔离计算，输入文本后打字效果即时输出，不再阻塞主界面。
           </div>
         </div>
 
@@ -124,7 +123,7 @@
 
         <div class="space-y-2 w-full max-w-xs">
           <h3 id="loading-title" class="text-sm font-semibold">正在初始化...</h3>
-          <p id="loading-subtext" class="text-xs text-slate-500 dark:text-slate-400">正在申请 WebGPU 动态显存分配...</p>
+          <p id="loading-subtext" class="text-xs text-slate-500 dark:text-slate-400">正在启动后台 Worker 线程...</p>
           
           <div class="w-full bg-slate-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden mt-3">
             <div id="progress-bar" class="bg-blue-600 h-full w-0 transition-all duration-200"></div>
@@ -135,7 +134,7 @@
         <div id="error-box" class="hidden w-full max-w-xs p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl text-left text-xs text-red-600 dark:text-red-400 space-y-1">
           <div class="font-bold flex items-center">
             <i class="fa-solid fa-circle-xmark mr-1.5"></i>
-            <span>服务暂时不可用</span>
+            <span>加载失败</span>
           </div>
           <p id="error-message" class="text-[11px] leading-relaxed"></p>
         </div>
@@ -151,13 +150,13 @@
         <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 no-scrollbar">
           <div class="text-center my-1">
             <span id="chat-badge-model" class="text-[10px] text-slate-400 bg-slate-200/50 dark:bg-zinc-800/50 px-2.5 py-1 rounded-full font-mono">
-              WebGPU Ready
+              WebGPU Worker Ready
             </span>
           </div>
 
           <div class="flex flex-col items-start space-y-1 max-w-[82%]">
             <div class="imessage-bubble-ai px-3.5 py-2 text-xs sm:text-sm leading-snug shadow-sm">
-              Hello! I am running locally in your browser. Ask me anything!
+              Hello! I am ready to assist you. Type a message to test execution!
             </div>
             <span class="text-[9px] text-slate-400 px-1">Local AI</span>
           </div>
@@ -185,25 +184,77 @@
     </div>
   </div>
 
-  <script type="module">
-    import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3';
+  <script>
+    // 后台 Web Worker 内核脚本代码（内联构建，避免多文件问题）
+    const workerScriptCode = `
+      import { pipeline, TextStreamer, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3';
 
-    env.allowLocalModels = false;
-    env.useBrowserCache = true;
+      env.allowLocalModels = false;
+      env.useBrowserCache = true;
+
+      let generator = null;
+      let fileProgressMap = {};
+
+      self.addEventListener('message', async (e) => {
+        const { type, data } = e.data;
+
+        if (type === 'load') {
+          try {
+            generator = await pipeline('text-generation', data.modelId, {
+              device: 'webgpu',
+              dtype: 'q4',
+              progress_callback: (p) => {
+                if (p.status === 'progress') {
+                  fileProgressMap[p.file || 'model'] = p.progress || 0;
+                  const files = Object.keys(fileProgressMap);
+                  const pct = Math.round(files.reduce((sum, k) => sum + fileProgressMap[k], 0) / (files.length || 1));
+                  self.postMessage({ status: 'progress', percent: pct });
+                }
+              }
+            });
+
+            self.postMessage({ status: 'ready' });
+          } catch (err) {
+            self.postMessage({ status: 'error', error: err.message || String(err) });
+          }
+        } else if (type === 'generate') {
+          try {
+            const streamer = new TextStreamer(generator.tokenizer, {
+              skip_prompt: true,
+              skip_special_tokens: true,
+              callback_function: (tokenText) => {
+                // 每生成一个词，即刻给主线程发送事件通知
+                self.postMessage({ status: 'update', token: tokenText });
+              }
+            });
+
+            const messages = [
+              { role: 'system', content: 'You are a helpful assistant.' },
+              ...data.history,
+              { role: 'user', content: data.text }
+            ];
+
+            await generator(messages, {
+              max_new_tokens: 128,
+              temperature: 0.6,
+              do_sample: true,
+              streamer: streamer
+            });
+
+            self.postMessage({ status: 'complete' });
+          } catch (err) {
+            self.postMessage({ status: 'error', error: err.message || String(err) });
+          }
+        }
+      });
+    `;
 
     let selectedModelId = 'onnx-community/SmolLM2-360M-Instruct';
     let selectedModelName = 'SmolLM2 360M';
 
-    let generator = null;
-    let isLoading = false;
-    let isLoaded = false;
+    let aiWorker = null;
     let chatHistory = [];
-    const fileProgressMap = {};
-
-    window.selectModelOption = selectModelOption;
-    window.checkAndStartLoading = checkAndStartLoading;
-    window.cancelLoading = cancelLoading;
-    window.handleSend = handleSend;
+    let currentAiBubble = null;
 
     function selectModelOption(elem, modelId, modelName) {
       document.querySelectorAll('.model-option').forEach(el => {
@@ -223,7 +274,7 @@
     async function checkAndStartLoading() {
       switchView('view-loading');
       document.getElementById('loading-title').innerText = `正在加载 ${selectedModelName}`;
-      document.getElementById('status-badge').innerText = '配置 WebGPU...';
+      document.getElementById('status-badge').innerText = '启动 Worker...';
       document.getElementById('error-box').classList.add('hidden');
 
       if (!('gpu' in navigator)) {
@@ -238,72 +289,95 @@
           return;
         }
 
-        // 核心修复 1：扩大 WebGPU 动态 Storage Buffer 上限，防止大权重内存报错
-        const requiredLimits = {};
-        if (adapter.limits.maxStorageBufferBindingSize) {
-          requiredLimits.maxStorageBufferBindingSize = adapter.limits.maxStorageBufferBindingSize;
-        }
-        if (adapter.limits.maxBufferSize) {
-          requiredLimits.maxBufferSize = adapter.limits.maxBufferSize;
-        }
+        // 创建 Worker 实例
+        const blob = new Blob([workerScriptCode], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(blob);
+        
+        aiWorker = new Worker(workerUrl, { type: 'module' });
 
-        const device = await adapter.requestDevice({ requiredLimits });
-        if (!device) {
-          showError('WebGPU 设备初始化失败。');
-          return;
-        }
+        aiWorker.onerror = (err) => {
+          console.error('Worker Fatal Error:', err);
+          showError('后台 Worker 初始化失败: ' + (err.message || '线程挂起'));
+        };
 
-        startModelLoading();
+        aiWorker.onmessage = (e) => {
+          const { status, percent, token, error } = e.data;
+
+          if (status === 'progress') {
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+            document.getElementById('progress-percent').innerText = `${percent}%`;
+            document.getElementById('loading-subtext').innerText = `正在下载模型权重... ${percent}%`;
+          } else if (status === 'ready') {
+            document.getElementById('header-model-name').innerText = selectedModelName;
+            document.getElementById('chat-badge-model').innerText = `${selectedModelName} (WebGPU Ready)`;
+            document.getElementById('status-badge').innerText = '在线 (WebGPU)';
+            document.getElementById('status-badge').className = 'text-[11px] text-emerald-500 font-medium';
+            switchView('view-chat');
+          } else if (status === 'update') {
+            // 收到 Token，实时无卡顿更新 DOM 气泡
+            if (currentAiBubble) {
+              currentAiBubble.innerText += token;
+              scrollChat();
+            }
+          } else if (status === 'complete') {
+            document.getElementById('btn-send').disabled = false;
+          } else if (status === 'error') {
+            showError(error);
+          }
+        };
+
+        // 发送模型初始化命令
+        aiWorker.postMessage({ type: 'load', data: { modelId: selectedModelId } });
+
       } catch (err) {
-        console.error('WebGPU Limit Config Error:', err);
-        // 如果自定义 Limit 报错，后备不带 limit 再次尝试
-        startModelLoading();
+        console.error('Init Worker Exception:', err);
+        showError('初始化失败: ' + err.message);
       }
     }
 
-    async function startModelLoading() {
-      isLoading = true;
-      document.getElementById('loading-subtext').innerText = '正在请求模型权重文件...';
-      document.getElementById('status-badge').innerText = '下载权重...';
+    function sendMessage(e) {
+      e.preventDefault();
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
 
-      try {
-        generator = await pipeline('text-generation', selectedModelId, {
-          device: 'webgpu',
-          dtype: 'q4',
-          progress_callback: (p) => {
-            if (!isLoading) return;
+      if (!text || !aiWorker) return;
 
-            if (p.status === 'progress') {
-              fileProgressMap[p.file || 'model'] = p.progress || 0;
-              const files = Object.keys(fileProgressMap);
-              const totalProgress = Math.round(
-                files.reduce((sum, key) => sum + fileProgressMap[key], 0) / (files.length || 1)
-              );
+      input.value = '';
+      document.getElementById('btn-send').disabled = true;
 
-              document.getElementById('progress-bar').style.width = `${totalProgress}%`;
-              document.getElementById('progress-percent').innerText = `${totalProgress}%`;
-              document.getElementById('loading-subtext').innerText = `下载权重中 (${totalProgress}%)`;
-            } else if (p.status === 'ready') {
-              document.getElementById('loading-subtext').innerText = '权重编译至显存...';
-            }
-          }
-        });
+      const chatContainer = document.getElementById('chat-messages');
 
-        isLoading = false;
-        isLoaded = true;
+      // 用户消息
+      const userBubbleWrap = document.createElement('div');
+      userBubbleWrap.className = 'flex flex-col items-end space-y-1 max-w-[82%] ml-auto';
+      userBubbleWrap.innerHTML = `
+        <div class="imessage-bubble-user px-3.5 py-2 text-xs sm:text-sm leading-snug shadow-sm break-words">
+          ${escapeHtml(text)}
+        </div>
+      `;
+      chatContainer.appendChild(userBubbleWrap);
 
-        document.getElementById('header-model-name').innerText = selectedModelName;
-        document.getElementById('chat-badge-model').innerText = `${selectedModelName} (WebGPU Ready)`;
-        document.getElementById('status-badge').innerText = '在线 (WebGPU)';
-        document.getElementById('status-badge').className = 'text-[11px] text-emerald-500 font-medium';
+      // AI 占位气泡
+      const aiBubbleWrap = document.createElement('div');
+      aiBubbleWrap.className = 'flex flex-col items-start space-y-1 max-w-[82%]';
+      
+      currentAiBubble = document.createElement('div');
+      currentAiBubble.className = 'imessage-bubble-ai px-3.5 py-2 text-xs sm:text-sm leading-snug shadow-sm break-words';
+      currentAiBubble.innerText = ''; // 准备接收 Token 流
+      
+      aiBubbleWrap.appendChild(currentAiBubble);
+      aiBubbleWrap.innerHTML += `<span class="text-[9px] text-slate-400 px-1">${selectedModelName}</span>`;
+      chatContainer.appendChild(aiBubbleWrap);
 
-        switchView('view-chat');
+      scrollChat();
 
-      } catch (error) {
-        console.error('Model Load Error:', error);
-        isLoading = false;
-        showError('服务暂时不可用：无法加载此模型资源。建议尝试 SmolLM2 360M 模型。');
-      }
+      // 向 Worker 发送生成指令
+      aiWorker.postMessage({
+        type: 'generate',
+        data: { text, history: chatHistory }
+      });
+
+      chatHistory.push({ role: 'user', content: text });
     }
 
     function showError(msg) {
@@ -315,86 +389,13 @@
     }
 
     function cancelLoading() {
-      isLoading = false;
-      generator = null;
+      if (aiWorker) {
+        aiWorker.terminate();
+        aiWorker = null;
+      }
       document.getElementById('status-badge').innerText = '未就绪';
       document.getElementById('status-badge').className = 'text-[11px] text-slate-500';
       switchView('view-intro');
-    }
-
-    async function handleSend(e) {
-      e.preventDefault();
-      const input = document.getElementById('chat-input');
-      const text = input.value.trim();
-
-      if (!text || !generator || !isLoaded) return;
-
-      input.value = '';
-      const sendBtn = document.getElementById('btn-send');
-      sendBtn.disabled = true;
-
-      const chatContainer = document.getElementById('chat-messages');
-
-      const userBubbleWrap = document.createElement('div');
-      userBubbleWrap.className = 'flex flex-col items-end space-y-1 max-w-[82%] ml-auto';
-      userBubbleWrap.innerHTML = `
-        <div class="imessage-bubble-user px-3.5 py-2 text-xs sm:text-sm leading-snug shadow-sm break-words">
-          ${escapeHtml(text)}
-        </div>
-      `;
-      chatContainer.appendChild(userBubbleWrap);
-
-      const aiBubbleWrap = document.createElement('div');
-      aiBubbleWrap.className = 'flex flex-col items-start space-y-1 max-w-[82%]';
-      
-      const aiBubble = document.createElement('div');
-      aiBubble.className = 'imessage-bubble-ai px-3.5 py-2 text-xs sm:text-sm leading-snug shadow-sm break-words';
-      aiBubble.innerHTML = `<i class="fa-solid fa-ellipsis fa-pulse text-slate-400"></i>`;
-      
-      aiBubbleWrap.appendChild(aiBubble);
-      aiBubbleWrap.innerHTML += `<span class="text-[9px] text-slate-400 px-1">${selectedModelName}</span>`;
-      chatContainer.appendChild(aiBubbleWrap);
-
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-
-      const messages = [
-        { role: 'system', content: 'You are a helpful assistant.' },
-        ...chatHistory,
-        { role: 'user', content: text }
-      ];
-
-      let generatedResponse = '';
-
-      // 核心修复 2：在打字机回调中增加 await 释放事件循环，防止 UI 渲染卡死
-      const streamer = new TextStreamer(generator.tokenizer, {
-        skip_prompt: true,
-        skip_special_tokens: true,
-        callback_function: async (tokenText) => {
-          generatedResponse += tokenText;
-          aiBubble.innerText = generatedResponse;
-          chatContainer.scrollTop = chatContainer.scrollHeight;
-          // 让出主线程微任务队列，强制渲染 DOM
-          await new Promise(resolve => setTimeout(resolve, 0));
-        }
-      });
-
-      try {
-        await generator(messages, {
-          max_new_tokens: 128,
-          temperature: 0.6,
-          streamer: streamer
-        });
-
-        chatHistory.push({ role: 'user', content: text });
-        chatHistory.push({ role: 'assistant', content: generatedResponse });
-
-      } catch (err) {
-        console.error('Inference Error:', err);
-        aiBubble.innerHTML = `<span class="text-red-500 font-medium"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 推理异常</span>`;
-      } finally {
-        sendBtn.disabled = false;
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-      }
     }
 
     function switchView(viewId) {
@@ -402,6 +403,11 @@
         document.getElementById(id).classList.add('hidden');
       });
       document.getElementById(viewId).classList.remove('hidden');
+    }
+
+    function scrollChat() {
+      const box = document.getElementById('chat-messages');
+      box.scrollTop = box.scrollHeight;
     }
 
     function escapeHtml(str) {
