@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apertus AI - WebGPU Local Chat</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    /* iMessage 气泡样式定制 */
+    .imessage-bubble-user {
+      background-color: #007AFF;
+      color: #FFFFFF;
+      border-radius: 18px;
+      border-bottom-right-radius: 4px;
+    }
+
+    .imessage-bubble-ai {
+      background-color: #E9E9EB;
+      color: #000000;
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .imessage-bubble-ai {
+        background-color: #262628;
+        color: #FFFFFF;
+      }
+    }
+
+    /* 隐藏滚动条但保留功能 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="h-full bg-slate-100 dark:bg-zinc-950 text-slate-800 dark:text-slate-100 antialiased flex flex-col items-center justify-center p-0 sm:p-4">
+
+  <!-- 主对话容器（模拟 iOS 界面尺寸） -->
+  <div class="w-full max-w-md h-full sm:h-[720px] bg-white dark:bg-zinc-900 sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-zinc-800 flex flex-col overflow-hidden relative">
+
+    <!-- 顶栏 Header -->
+    <header class="px-4 py-3 bg-slate-50/90 dark:bg-zinc-900/90 backdrop-blur border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between shrink-0 z-10">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+          <i class="fa-solid fa-sparkles"></i>
+        </div>
+        <div>
+          <h1 class="text-sm font-semibold leading-none">Apertus 0.5B</h1>
+          <span id="status-badge" class="text-[11px] text-slate-500 dark:text-slate-400">未就绪 (WebGPU)</span>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-medium rounded-full">
+          端侧推理
+        </span>
+      </div>
+    </header>
+
+    <!-- 主体区域：三阶段视图 -->
+    <div id="main-content" class="flex-1 flex flex-col overflow-hidden relative">
+
+      <!-- ========================================== -->
+      <!-- 阶段 1：模型介绍与隐私声明 (Notice View)   -->
+      <!-- ========================================== -->
+      <div id="view-intro" class="flex-1 p-6 flex flex-col justify-between overflow-y-auto">
+        <div class="space-y-5">
+          <div class="text-center pt-4">
+            <div class="inline-flex p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 mb-3">
+              <i class="fa-solid fa-microchip text-3xl"></i>
+            </div>
+            <h2 class="text-lg font-bold">WebGPU 端侧模型说明</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Apertus-v1.1-0.5B-Instruct-ONNX</p>
+          </div>
+
+          <!-- 核心技术架构与安全说明 -->
+          <div class="space-y-3 text-xs leading-relaxed">
+            <div class="p-3 bg-slate-50 dark:bg-zinc-800/50 rounded-xl border border-slate-100 dark:border-zinc-800">
+              <span class="font-semibold text-slate-900 dark:text-slate-100 block mb-1">
+                <i class="fa-solid fa-shield-halved text-emerald-500 mr-1"></i> 数据安全与计算
+              </span>
+              本程序基于 Swiss AI 蒸馏的 0.5B 指令微调轻量化模型。模型权重加载后，利用 WebGPU (Transformers.js v3) 直接在浏览器显存中进行神经网络推理，对话数据不上传云端 API 服务。
+            </div>
+
+            <div class="p-3 bg-slate-50 dark:bg-zinc-800/50 rounded-xl border border-slate-100 dark:border-zinc-800">
+              <span class="font-semibold text-slate-900 dark:text-slate-100 block mb-1">
+                <i class="fa-solid fa-download text-blue-500 mr-1"></i> 首次资源加载
+              </span>
+              首次运行需从 Hugging Face 镜像拉取约 300MB 的 4-bit 量化 ONNX 模型文件，下载完成后将自动被浏览器 Cache 缓存，后续打开无需重复下载。
+            </div>
+
+            <div class="p-3 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 rounded-xl border border-amber-200 dark:border-amber-900/50 text-[11px]">
+              <i class="fa-solid fa-triangle-exclamation mr-1"></i> 免责声明：小参数端侧模型推理结果可能存在局限或幻觉，请理性参考。
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 space-y-2">
+          <button id="btn-start" onclick="checkAndStartLoading()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium text-sm rounded-xl transition-colors shadow-sm flex items-center justify-center space-x-2">
+            <span>启动并检测硬件</span>
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- 阶段 2：模型下载与编译进度 (Loading View)  -->
+      <!-- ========================================== -->
+      <div id="view-loading" class="hidden flex-1 p-6 flex flex-col items-center justify-center text-center space-y-6">
+        <div class="relative w-16 h-16 flex items-center justify-center">
+          <div class="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-zinc-800"></div>
+          <div id="loading-spinner" class="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
+          <i class="fa-solid fa-cube text-blue-600 text-lg"></i>
+        </div>
+
+        <div class="space-y-2 w-full max-w-xs">
+          <h3 class="text-sm font-semibold">正在加载 AI 模型资源...</h3>
+          <p id="loading-subtext" class="text-xs text-slate-500 dark:text-slate-400">正在检查 WebGPU 设备上下文...</p>
+          
+          <!-- 进度条 -->
+          <div class="w-full bg-slate-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden mt-3">
+            <div id="progress-bar" class="bg-blue-600 h-full w-0 transition-all duration-200"></div>
+          </div>
+          <div id="progress-percent" class="text-[11px] font-mono text-slate-400 text-right">0%</div>
+        </div>
+
+        <!-- 容错错误提示 -->
+        <div id="error-box" class="hidden w-full max-w-xs p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl text-left text-xs text-red-600 dark:text-red-400 space-y-1">
+          <div class="font-bold flex items-center">
+            <i class="fa-solid fa-circle-xmark mr-1.5"></i>
+            <span>服务暂时不可用</span>
+          </div>
+          <p id="error-message" class="text-[11px] leading-relaxed">浏览器或硬件不支持 WebGPU 或是网络资源加载失败。</p>
+        </div>
+
+        <button id="btn-cancel" onclick="cancelLoading()" class="px-4 py-2 border border-slate-300 dark:border-zinc-700 text-xs text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors">
+          取消加载
+        </button>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- 阶段 3：iMessage 风格对话界面 (Chat View)  -->
+      <!-- ========================================== -->
+      <div id="view-chat" class="hidden flex-1 flex flex-col h-full overflow-hidden">
+        
+        <!-- 消息对话区域 -->
+        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 no-scrollbar">
+          <div class="text-center my-2">
+            <span class="text-[10px] text-slate-400 bg-slate-200/50 dark:bg-zinc-800/50 px-2 py-0.5 rounded-full">
+              端侧 WebGPU 神经网络模型已就绪
+            </span>
+          </div>
+
+          <!-- 初始 AI 欢迎消息 -->
+          <div class="flex flex-col items-start space-y-1 max-w-[82%]">
+            <div class="imessage-bubble-ai px-3.5 py-2 text-xs sm:text-sm leading-snug shadow-sm">
+              你好！我是部署在你的本地浏览器显卡上的 Apertus 0.5B AI 助手。有什么我可以帮你的？
+            </div>
+            <span class="text-[9px] text-slate-400 px-1">Apertus • Local</span>
+          </div>
+        </div>
+
+        <!-- 底部输入框 -->
+        <form onsubmit="handleSend(event)" class="p-3 bg-slate-50/90 dark:bg-zinc-900/90 border-t border-slate-200 dark:border-zinc-800 flex items-center space-x-2 shrink-0">
+          <input 
+            type="text" 
+            id="chat-input" 
+            placeholder="iMessage" 
+            autocomplete="off"
+            class="flex-1 px-4 py-2 bg-white dark:bg-zinc-800 border border-slate-300 dark:border-zinc-700 rounded-full text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-400"
+          />
+          <button 
+            type="submit" 
+            id="btn-send"
+            class="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+          >
+            <i class="fa-solid fa-arrow-up text-xs"></i>
+          </button>
+        </form>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JavaScript WebGPU & Pipeline Logic -->
+  <script type="module">
+    import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3';
+
+    // 禁用本地模型文件检索，开启浏览器 Cache
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+
+    // Apertus 0.5B Instruct ONNX 模型标识
+    const MODEL_ID = 'onnx-community/Apertus-v1.1-0.5B-Instruct-ONNX';
+
+    let generator = null;
+    let isLoading = false;
+    let isLoaded = false;
+    let chatHistory = [];
+    const fileProgressMap = {};
+
+    // 暴露函数至 window 供 HTML 事件响应
+    window.checkAndStartLoading = checkAndStartLoading;
+    window.cancelLoading = cancelLoading;
+    window.handleSend = handleSend;
+
+    // 1. 硬件检测与启动加载
+    async function checkAndStartLoading() {
+      switchView('view-loading');
+      document.getElementById('status-badge').innerText = '正在检测硬件...';
+      document.getElementById('error-box').classList.add('hidden');
+
+      // WebGPU API 支持性检查
+      if (!('gpu' in navigator)) {
+        showError('您的浏览器未开启或不支持 WebGPU 接口，请使用最新 Chrome / Edge / Safari 浏览器。');
+        return;
+      }
+
+      try {
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) {
+          showError('未检测到兼容的 WebGPU 显卡设备或驱动。');
+          return;
+        }
+
+        const device = await adapter.requestDevice();
+        if (!device) {
+          showError('WebGPU 设备初始化失败。');
+          return;
+        }
+
+        // 开始下载并编译模型
+        startModelLoading();
+      } catch (err) {
+        console.error('WebGPU Adapter error:', err);
+        showError('WebGPU 初始化异常: ' + err.message);
+      }
+    }
+
+    // 2. 模型下载与构建
+    async function startModelLoading() {
+      isLoading = true;
+      document.getElementById('loading-subtext').innerText = '正在从镜像下载模型权重文件...';
+      document.getElementById('status-badge').innerText = '正在下载模型...';
+
+      try {
+        generator = await pipeline('text-generation', MODEL_ID, {
+          device: 'webgpu',
+          dtype: 'q4', // 4-bit 量化
+          progress_callback: (p) => {
+            if (!isLoading) return;
+
+            if (p.status === 'progress') {
+              fileProgressMap[p.file || 'model'] = p.progress || 0;
+              const files = Object.keys(fileProgressMap);
+              const totalProgress = Math.round(
+                files.reduce((sum, key) => sum + fileProgressMap[key], 0) / (files.length || 1)
+              );
+
+              document.getElementById('progress-bar').style.width = `${totalProgress}%`;
+              document.getElementById('progress-percent').innerText = `${totalProgress}%`;
+              document.getElementById('loading-subtext').innerText = `正在拉取 ONNX 模型权重 (${totalProgress}%)`;
+            } else if (p.status === 'ready') {
+              document.getElementById('loading-subtext').innerText = '模型正在编译至显存...';
+            }
+          }
+        });
+
+        isLoading = false;
+        isLoaded = true;
+
+        document.getElementById('status-badge').innerText = '在线 (WebGPU)';
+        document.getElementById('status-badge').className = 'text-[11px] text-emerald-500 font-medium';
+
+        // 页面关闭/刷新防误触提醒
+        window.addEventListener('beforeunload', (e) => {
+          if (isLoaded) {
+            e.preventDefault();
+            e.returnValue = '刷新或离开页面后，下次使用需重新加载模型。';
+          }
+        });
+
+        switchView('view-chat');
+
+      } catch (error) {
+        console.error('Model Load Error:', error);
+        isLoading = false;
+        showError('服务暂时不可用：资源下载或 WebGPU 编译失败。请检查网络后重试。');
+      }
+    }
+
+    // 3. 错误拦截显示
+    function showError(msg) {
+      document.getElementById('loading-spinner').classList.add('hidden');
+      document.getElementById('error-message').innerText = msg;
+      document.getElementById('error-box').classList.remove('hidden');
+      document.getElementById('status-badge').innerText = '加载失败';
+      document.getElementById('status-badge').className = 'text-[11px] text-red-500 font-medium';
+    }
+
+    // 4. 取消加载
+    function cancelLoading() {
+      isLoading = false;
+      generator = null;
+      document.getElementById('status-badge').innerText = '未就绪 (WebGPU)';
+      document.getElementById('status-badge').className = 'text-[11px] text-slate-500';
+      switchView('view-intro');
+    }
+
+    // 5. 对话消息发送与流式渲染
+    async function handleSend(e) {
+      e.preventDefault();
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+
+      if (!text || !generator || !isLoaded) return;
+
+      input.value = '';
+      const sendBtn = document.getElementById('btn-send');
+      sendBtn.disabled = true;
+
+      const chatContainer = document.getElementById('chat-messages');
+
+      // 渲染用户发出的消息 (右侧蓝色)
+      const userBubbleWrap = document.createElement('div');
+      userBubbleWrap.className = 'flex flex-col items-end space-y-1 max-w-[82%] ml-auto';
+      userBubbleWrap.innerHTML = `
+        <div class="imessage-bubble-user px-3.5 py-2 text-xs sm:text-sm leading-snug shadow-sm break-words">
+          ${escapeHtml(text)}
+        </div>
+      `;
+      chatContainer.appendChild(userBubbleWrap);
+
+      // 渲染 AI 占位消息 (左侧灰色)
+      const aiBubbleWrap = document.createElement('div');
+      aiBubbleWrap.className = 'flex flex-col items-start space-y-1 max-w-[82%]';
+      
+      const aiBubble = document.createElement('div');
+      aiBubble.className = 'imessage-bubble-ai px-3.5 py-2 text-xs sm:text-sm leading-snug shadow-sm break-words';
+      aiBubble.innerHTML = `<i class="fa-solid fa-ellipsis fa-pulse text-slate-400"></i>`;
+      
+      aiBubbleWrap.appendChild(aiBubble);
+      aiBubbleWrap.innerHTML += `<span class="text-[9px] text-slate-400 px-1">Apertus</span>`;
+      chatContainer.appendChild(aiBubbleWrap);
+
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      // 组装模型系统提示与历史上下文
+      const messages = [
+        { role: 'system', content: 'You are a helpful and concise AI assistant.' },
+        ...chatHistory,
+        { role: 'user', content: text }
+      ];
+
+      let generatedResponse = '';
+      
+      // 流式打字机输出配置
+      const streamer = new TextStreamer(generator.tokenizer, {
+        skip_prompt: true,
+        skip_special_tokens: true,
+        callback_function: (tokenText) => {
+          generatedResponse += tokenText;
+          aiBubble.innerText = generatedResponse;
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+      });
+
+      try {
+        await generator(messages, {
+          max_new_tokens: 256,
+          temperature: 0.7,
+          streamer: streamer
+        });
+
+        // 记录对话历史
+        chatHistory.push({ role: 'user', content: text });
+        chatHistory.push({ role: 'assistant', content: generatedResponse });
+
+      } catch (err) {
+        console.error('Inference Error:', err);
+        aiBubble.innerHTML = `<span class="text-red-500 font-medium"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 推理发生错误</span>`;
+      } finally {
+        sendBtn.disabled = false;
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    }
+
+    // 辅助切换视图
+    function switchView(viewId) {
+      ['view-intro', 'view-loading', 'view-chat'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      document.getElementById(viewId).classList.remove('hidden');
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+  </script>
+</body>
+</html>
