@@ -1,157 +1,479 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CAAC Aviation Intelligence Hub</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Noto+Sans+SC:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        /* =================美术设计与变量================= */
+        :root {
+            --bg-main: #060F1E;      /* 深海军蓝背景 */
+            --bg-panel: #0A192F;     /* 面板背景 */
+            --bg-hover: #112240;     /* 悬停状态 */
+            --text-main: #E6F1FF;    /* 主文本 */
+            --text-muted: #8892B0;   /* 辅助文本 */
+            --accent-cyan: #64FFDA;  /* 航空仪表青色 */
+            --accent-blue: #007BFF;  /* 强调蓝 */
+            --warning: #FFB74D;      /* 警告橙 */
+            --border: #233554;       /* 分割线 */
+            --font-en: 'Inter', sans-serif;
+            --font-zh: 'Noto Sans SC', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: var(--font-en);
+            font-size: 14px;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        body.lang-zh { font-family: var(--font-zh); }
+
+        /* =================全局布局与组件================= */
+        .header { background: var(--bg-panel); border-bottom: 1px solid var(--accent-cyan); display: flex; justify-content: space-between; align-items: center; padding: 0 24px; height: 60px; flex-shrink: 0; }
+        .logo h1 { font-size: 1.1rem; font-weight: 600; color: var(--accent-cyan); letter-spacing: 1px; }
+        .disclaimer { font-size: 0.65rem; color: var(--warning); text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .controls { display: flex; gap: 16px; align-items: center; }
+        .nav-menu { display: flex; gap: 4px; }
+        .btn { background: transparent; border: none; color: var(--text-muted); font-size: 0.9rem; padding: 10px 16px; cursor: pointer; transition: 0.3s; font-family: inherit; border-bottom: 2px solid transparent; }
+        .btn:hover { color: var(--text-main); background: rgba(100, 255, 218, 0.05); }
+        .btn.active { color: var(--accent-cyan); border-bottom: 2px solid var(--accent-cyan); }
+        .lang-toggle { border: 1px solid var(--border); border-radius: 4px; padding: 4px 12px; font-size: 0.8rem; color: var(--text-main); cursor: pointer; }
+
+        .main-content { flex-grow: 1; padding: 24px; overflow-y: auto; position: relative; }
+        .section { display: none; animation: fadeIn 0.4s ease; height: 100%; }
+        .section.active { display: block; }
+        
+        .title-bar { border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 24px; }
+        .title-bar h2 { font-size: 1.5rem; font-weight: 300; }
+        
+        .grid-panel { background: var(--bg-panel); border: 1px solid var(--border); padding: 20px; }
+        input[type="range"] { width: 100%; accent-color: var(--accent-cyan); margin: 8px 0; }
+        
+        /* =================特定模块样式================= */
+        /* Overview */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .kpi-card { border-left: 3px solid var(--accent-cyan); }
+        .kpi-val { font-size: 2rem; font-weight: 600; color: var(--text-main); font-family: monospace; }
+        
+        /* Split Layout (DBs) */
+        .split-layout { display: flex; gap: 24px; height: calc(100% - 60px); }
+        .sidebar { width: 320px; display: flex; flex-direction: column; flex-shrink: 0; }
+        .search-box { width: 100%; background: var(--bg-main); border: 1px solid var(--border); color: var(--text-main); padding: 12px; outline: none; margin-bottom: 12px; font-family: inherit; }
+        .search-box:focus { border-color: var(--accent-cyan); }
+        .list-view { overflow-y: auto; flex-grow: 1; border: 1px solid var(--border); }
+        .list-item { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; }
+        .list-item:hover, .list-item.selected { background: var(--bg-hover); border-left: 3px solid var(--accent-cyan); }
+        .detail-view { flex-grow: 1; overflow-y: auto; }
+        
+        .spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 16px; }
+        .spec-item { background: var(--bg-panel); padding: 12px; display: flex; justify-content: space-between; }
+        .spec-val { font-family: monospace; color: var(--accent-cyan); text-align: right; }
+
+        /* Simulator */
+        .sim-layout { display: grid; grid-template-columns: 350px 1fr; gap: 24px; height: calc(100% - 60px); }
+        .svg-container { width: 100%; height: 100%; background: #040A14; border: 1px solid var(--border); display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+        .hud-overlay { position: absolute; top: 16px; left: 16px; font-family: monospace; font-size: 0.8rem; color: var(--text-muted); pointer-events: none; }
+        .vec-label { font-family: monospace; font-size: 12px; }
+        
+        /* =================响应式设计================= */
+        @media (max-width: 900px) {
+            .sim-layout { grid-template-columns: 1fr; grid-template-rows: auto 400px; height: auto; }
+            .split-layout { flex-direction: column; height: auto; }
+            .sidebar { width: 100%; height: 300px; }
+            .detail-view { min-height: 400px; }
+            .nav-menu { display: none; } /* 移动端简化导航，此处用横向滚动代替 */
+            .controls { flex-direction: column-reverse; align-items: flex-end; gap: 8px; }
+            .header { height: auto; padding: 12px 24px; flex-direction: column; align-items: flex-start; gap: 12px; }
+            .nav-menu { display: flex; overflow-x: auto; width: 100%; padding-bottom: 4px; }
+            .btn { white-space: nowrap; padding: 8px 12px; }
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
 <body>
-    <!-- Top Navigation -->
-    <header class="top-nav">
-        <div class="logo-area">
-            <h1>CAAC Aviation Intelligence Hub</h1>
-            <span class="disclaimer">Independent Reference Platform / 非官方网站</span>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <h1 class="i18n" data-en="CAAC Aviation Intelligence Hub" data-zh="中国民航信息与航空器技术参考平台">CAAC Aviation Intelligence Hub</h1>
+            <span class="disclaimer i18n" data-en="Independent Reference Platform / Non-Official" data-zh="独立参考平台 / 非官方网站">Independent Reference Platform / Non-Official</span>
         </div>
-        <nav class="menu">
-            <button class="nav-btn active" data-target="overview">Overview</button>
-            <button class="nav-btn" data-target="airports">Airports</button>
-            <button class="nav-btn" data-target="aircraft">Aircraft</button>
-            <button class="nav-btn" data-target="simulator">Flight Physics</button>
-        </nav>
+        <div class="controls">
+            <nav class="nav-menu">
+                <button class="btn active i18n" data-target="overview" data-en="Overview" data-zh="运行总览">Overview</button>
+                <button class="btn i18n" data-target="airports" data-en="Airports" data-zh="机场数据库">Airports</button>
+                <button class="btn i18n" data-target="aircraft" data-en="Aircraft Library" data-zh="航空器资料">Aircraft Library</button>
+                <button class="btn i18n" data-target="simulator" data-en="Physics Simulator" data-zh="飞行物理仿真">Physics Simulator</button>
+            </nav>
+            <button class="lang-toggle" onclick="toggleLang()">EN / 中文</button>
+        </div>
     </header>
 
-    <main class="content-area">
-        <!-- Section 1: Overview Dashboard -->
+    <!-- Main Content -->
+    <main class="main-content">
+        
+        <!-- 1. Overview Section -->
         <section id="overview" class="section active">
-            <h2 class="section-title">Civil Aviation Overview <span class="cn-title">中国民航运行总览</span></h2>
+            <div class="title-bar"><h2 class="i18n" data-en="Civil Aviation Overview" data-zh="中国民用航空运行总览">Civil Aviation Overview</h2></div>
             <div class="kpi-grid">
-                <div class="kpi-card"><div class="kpi-value">259</div><div class="kpi-label">Transport Airports (运输机场)</div></div>
-                <div class="kpi-card"><div class="kpi-value">4</div><div class="kpi-label">Reference Aircraft (参考机型)</div></div>
-                <div class="kpi-card"><div class="kpi-value">40+</div><div class="kpi-label">Airlines (航空公司)</div></div>
-                <div class="kpi-card"><div class="kpi-value">Active</div><div class="kpi-label">System Status (系统状态)</div></div>
+                <div class="grid-panel kpi-card">
+                    <div class="kpi-val">259</div>
+                    <div class="i18n text-muted" data-en="Transport Airports" data-zh="运输机场总数">Transport Airports</div>
+                </div>
+                <div class="grid-panel kpi-card">
+                    <div class="kpi-val">4</div>
+                    <div class="i18n text-muted" data-en="Reference Aircraft Models" data-zh="参考航空器机型">Reference Aircraft Models</div>
+                </div>
+                <div class="grid-panel kpi-card">
+                    <div class="kpi-val">40+</div>
+                    <div class="i18n text-muted" data-en="Airlines" data-zh="客运航空公司">Airlines</div>
+                </div>
+                <div class="grid-panel kpi-card">
+                    <div class="kpi-val" style="color:var(--accent-cyan)">ONLINE</div>
+                    <div class="i18n text-muted" data-en="System Status" data-zh="系统运行状态">System Status</div>
+                </div>
             </div>
-            <div class="dashboard-panels">
-                <div class="panel map-panel">
-                    <h3>Major Airports Distribution</h3>
-                    <!-- 简化的中国地图SVG与机场点 -->
-                    <svg class="china-map" viewBox="0 0 800 600" id="airport-map">
-                        <rect width="800" height="600" fill="#061224" />
-                        <path d="M100,300 Q400,100 700,400" stroke="#1E3A5F" fill="none" stroke-width="2" stroke-dasharray="5,5"/>
-                        <!-- 动态生成的机场坐标点将在此处渲染 -->
-                    </svg>
-                </div>
-                <div class="panel chart-panel">
-                    <h3>Transport Scale Trend (Mock Data)</h3>
-                    <div class="bar-chart" id="trend-chart"></div>
-                </div>
+            <div class="grid-panel" style="height: 300px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border);">
+                <span class="i18n text-muted" data-en="[ Abstract Data Visualization Placeholder ]" data-zh="[ 抽象数据可视化图表占位 ]">[ Abstract Data Visualization Placeholder ]</span>
             </div>
         </section>
 
-        <!-- Section 2: Airports Database -->
+        <!-- 2. Airports Section -->
         <section id="airports" class="section">
-            <h2 class="section-title">Airport Database <span class="cn-title">机场信息系统</span></h2>
+            <div class="title-bar"><h2 class="i18n" data-en="Airport Database" data-zh="民用机场数据库">Airport Database</h2></div>
             <div class="split-layout">
                 <div class="sidebar">
-                    <input type="text" id="airport-search" class="search-box" placeholder="Search by ICAO / IATA / Name...">
-                    <ul id="airport-list" class="item-list"></ul>
+                    <input type="text" id="apt-search" class="search-box i18n-ph" data-en="Search ICAO / IATA / Name..." data-zh="搜索代码或名称..." placeholder="Search ICAO / IATA / Name...">
+                    <div class="list-view" id="apt-list"></div>
                 </div>
-                <div class="main-panel" id="airport-detail-panel">
-                    <div class="placeholder-text">Select an airport from the list</div>
+                <div class="grid-panel detail-view" id="apt-detail">
+                    <div style="height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-muted);" class="i18n" data-en="Select an airport from the list." data-zh="请从左侧列表选择机场。">Select an airport from the list.</div>
                 </div>
             </div>
         </section>
 
-        <!-- Section 3: Aircraft Technical Library -->
+        <!-- 3. Aircraft Section -->
         <section id="aircraft" class="section">
-            <h2 class="section-title">Aircraft Technical Library <span class="cn-title">航空器技术资料库</span></h2>
-            <div class="tab-nav" id="aircraft-tabs">
-                <button class="tab-btn active" data-model="C919">COMAC C919</button>
-                <button class="tab-btn" data-model="C909">COMAC C909 (ARJ21)</button>
-                <button class="tab-btn" data-model="A320neo">Airbus A320neo</button>
-                <button class="tab-btn" data-model="B737-800">Boeing 737-800</button>
-            </div>
-            <div class="aircraft-content" id="aircraft-detail-panel">
-                <!-- 动态渲染 -->
+            <div class="title-bar"><h2 class="i18n" data-en="Aircraft Technical Library" data-zh="航空器技术资料库">Aircraft Technical Library</h2></div>
+            <div class="split-layout">
+                <div class="sidebar">
+                    <div class="list-view" id="ac-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <div class="grid-panel detail-view" id="ac-detail"></div>
             </div>
         </section>
 
-        <!-- Section 4: Flight Physics Simulator -->
+        <!-- 4. Simulator Section -->
         <section id="simulator" class="section">
-            <h2 class="section-title">Aircraft Engineering & Flight Physics Simulator <span class="cn-title">工程与飞行物理仿真</span></h2>
-            <div class="warning-banner">Educational demonstration only. Not for actual flight operations or airworthiness validation.</div>
+            <div class="title-bar"><h2 class="i18n" data-en="Flight Physics Simulator" data-zh="交互式飞行物理仿真">Flight Physics Simulator</h2></div>
+            <div style="background: rgba(255,183,77,0.1); border: 1px solid var(--warning); color: var(--warning); padding: 8px; margin-bottom: 16px; font-size: 0.8rem;" class="i18n" data-en="Educational demonstration only. Not for actual flight operations." data-zh="仅供工程教育演示。请勿用于真实飞行操作或适航验证。">Educational demonstration only. Not for actual flight operations.</div>
             
-            <div class="sim-grid">
-                <!-- Parameters Panel -->
-                <div class="sim-panel controls">
-                    <h3>Flight Parameters</h3>
-                    <div class="slider-group">
-                        <label>Airspeed (v): <span id="val-speed">250</span> m/s</label>
-                        <input type="range" id="sim-speed" min="0" max="300" value="150">
-                    </div>
-                    <div class="slider-group">
-                        <label>Angle of Attack (α): <span id="val-aoa">0</span>°</label>
-                        <input type="range" id="sim-aoa" min="-5" max="25" value="0">
-                    </div>
-                    <div class="slider-group">
-                        <label>Altitude (Density ρ): <span id="val-alt">5000</span> m</label>
-                        <input type="range" id="sim-alt" min="0" max="12000" value="5000">
-                    </div>
-                    <div class="slider-group">
-                        <label>Flap Deflection: <span id="val-flap">0</span>°</label>
-                        <input type="range" id="sim-flap" min="0" max="40" value="0">
-                    </div>
-                    <div class="slider-group">
-                        <label>Engine Thrust: <span id="val-thrust">50</span>%</label>
-                        <input type="range" id="sim-thrust" min="0" max="100" value="50">
-                    </div>
-                    <div class="physics-formulas">
-                        Lift = 0.5 × ρ × v² × S × C_L(α)<br>
-                        Drag = 0.5 × ρ × v² × S × C_D(α)
+            <div class="sim-layout">
+                <!-- Parameters -->
+                <div class="grid-panel" style="overflow-y: auto;">
+                    <h3 class="i18n" data-en="Control Parameters" data-zh="飞行参数控制" style="margin-bottom: 16px;">Control Parameters</h3>
+                    
+                    <label class="i18n" data-en="Airspeed (v)" data-zh="空速 (v)">Airspeed (v)</label>
+                    <div style="display:flex; justify-content:space-between; font-family:monospace; color:var(--accent-cyan)"><span id="val-v">150</span> m/s</div>
+                    <input type="range" id="sim-v" min="0" max="300" value="150">
+
+                    <label class="i18n" data-en="Angle of Attack (α)" data-zh="迎角 (α)">Angle of Attack (α)</label>
+                    <div style="display:flex; justify-content:space-between; font-family:monospace; color:var(--accent-cyan)"><span id="val-aoa">5</span> °</div>
+                    <input type="range" id="sim-aoa" min="-5" max="25" value="5">
+
+                    <label class="i18n" data-en="Flap Deflection" data-zh="襟翼偏转角">Flap Deflection</label>
+                    <div style="display:flex; justify-content:space-between; font-family:monospace; color:var(--accent-cyan)"><span id="val-flap">0</span> °</div>
+                    <input type="range" id="sim-flap" min="0" max="40" value="0">
+
+                    <label class="i18n" data-en="Engine Thrust" data-zh="发动机推力">Engine Thrust</label>
+                    <div style="display:flex; justify-content:space-between; font-family:monospace; color:var(--accent-cyan)"><span id="val-thr">60</span> %</div>
+                    <input type="range" id="sim-thr" min="0" max="100" value="60">
+
+                    <div style="margin-top:24px; padding:12px; background:var(--bg-main); border-left:2px solid var(--border); font-family:monospace; font-size:0.75rem; color:var(--text-muted)">
+                        L = 0.5 × ρ × v² × S × C_L(α)<br>
+                        D = 0.5 × ρ × v² × S × C_D(α)
                     </div>
                 </div>
 
-                <!-- Aerodynamics Canvas -->
-                <div class="sim-panel visualizer">
-                    <h3>Aerodynamics Visualization</h3>
-                    <svg viewBox="-200 -200 400 400" id="aero-svg">
-                        <!-- Airplane Profile -->
-                        <g id="sim-airplane">
-                            <path d="M-100,0 L50,0 L80,-30 L100,-30 L100,10 L-100,10 Z" fill="#8892B0"/>
-                            <!-- Flap Animation -->
-                            <rect x="-40" y="5" width="30" height="8" fill="#00bcd4" id="sim-flap-svg"/>
-                        </g>
-                        <!-- Force Vectors -->
-                        <line x1="0" y1="0" x2="0" y2="-10" stroke="#00bcd4" stroke-width="3" marker-end="url(#arrow)" id="vec-lift"/>
-                        <text x="5" y="-15" fill="#00bcd4" class="vec-label" id="txt-lift">Lift</text>
-                        
-                        <line x1="0" y1="0" x2="0" y2="100" stroke="#FF9800" stroke-width="3" marker-end="url(#arrow)" id="vec-weight"/>
-                        <text x="5" y="115" fill="#FF9800" class="vec-label">Weight</text>
-
-                        <line x1="0" y1="0" x2="10" y2="0" stroke="#64FFDA" stroke-width="3" marker-end="url(#arrow)" id="vec-thrust"/>
-                        <text x="15" y="-5" fill="#64FFDA" class="vec-label" id="txt-thrust">Thrust</text>
-
-                        <line x1="0" y1="0" x2="-10" y2="0" stroke="#F44336" stroke-width="3" marker-end="url(#arrow)" id="vec-drag"/>
-                        <text x="-15" y="-5" fill="#F44336" class="vec-label" id="txt-drag">Drag</text>
-
+                <!-- Visualization -->
+                <div class="svg-container">
+                    <div class="hud-overlay" id="hud-data">
+                        ALT: 5000m | RHO: 0.736 kg/m³<br>
+                        STATUS: NOMINAL
+                    </div>
+                    <!-- Inline SVG Physics Engine -->
+                    <svg viewBox="-200 -200 400 400" width="100%" height="100%">
                         <defs>
-                            <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                                <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
-                            </marker>
+                            <marker id="arrowL" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#64FFDA"/></marker>
+                            <marker id="arrowD" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#FF5252"/></marker>
+                            <marker id="arrowT" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#448AFF"/></marker>
+                            <marker id="arrowW" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#FFB74D"/></marker>
                         </defs>
+                        
+                        <!-- Airplane Model Group -->
+                        <g id="svg-plane">
+                            <!-- Fuselage / Wing Profile -->
+                            <path d="M-90,0 C-100,-10 -60,-20 0,-20 C60,-20 80,0 80,0 L80,10 C50,15 -50,15 -90,10 Z" fill="#8892B0"/>
+                            <path d="M-80,-10 L-95,-40 L-75,-40 L-60,-10 Z" fill="#5A6B8C"/> <!-- Tail -->
+                            <!-- Flap Mechanism (Animates) -->
+                            <rect id="svg-flap" x="-30" y="5" width="40" height="8" rx="4" fill="#64FFDA" transform-origin="-30 9"/>
+                        </g>
+
+                        <!-- Force Vectors -->
+                        <line x1="0" y1="0" x2="0" y2="-50" stroke="#64FFDA" stroke-width="3" marker-end="url(#arrowL)" id="vec-lift"/>
+                        <text x="5" y="-55" fill="#64FFDA" class="vec-label" id="txt-lift">LIFT</text>
+
+                        <line x1="0" y1="0" x2="-40" y2="0" stroke="#FF5252" stroke-width="3" marker-end="url(#arrowD)" id="vec-drag"/>
+                        <text x="-45" y="-10" fill="#FF5252" class="vec-label" id="txt-drag">DRAG</text>
+
+                        <line x1="0" y1="0" x2="60" y2="0" stroke="#448AFF" stroke-width="3" marker-end="url(#arrowT)" id="vec-thrust"/>
+                        <text x="65" y="15" fill="#448AFF" class="vec-label" id="txt-thrust">THRUST</text>
+                        
+                        <line x1="0" y1="0" x2="0" y2="80" stroke="#FFB74D" stroke-width="3" marker-end="url(#arrowW)" id="vec-weight"/>
+                        <text x="5" y="85" fill="#FFB74D" class="vec-label">WEIGHT</text>
                     </svg>
                 </div>
             </div>
         </section>
+
     </main>
 
-    <footer class="system-status">
-        <span>CAAC AVIATION INTELLIGENCE HUB v1.0</span>
-        <span>STATUS: ONLINE | DATA: MOCK-UP | SECURE CONNECTION</span>
-    </footer>
+    <script>
+        /* ================= 数据库 (Database) ================= */
+        const dbAirports = [
+            { icao: "ZBAA", iata: "PEK", en: { name: "Beijing Capital Int'l", city: "Beijing", type: "4F", rwy: "3" }, zh: { name: "北京首都国际机场", city: "北京", type: "4F", rwy: "3" } },
+            { icao: "ZBAD", iata: "PKX", en: { name: "Beijing Daxing Int'l", city: "Beijing", type: "4F", rwy: "4" }, zh: { name: "北京大兴国际机场", city: "北京", type: "4F", rwy: "4" } },
+            { icao: "ZSPD", iata: "PVG", en: { name: "Shanghai Pudong Int'l", city: "Shanghai", type: "4F", rwy: "4" }, zh: { name: "上海浦东国际机场", city: "上海", type: "4F", rwy: "4" } },
+            { icao: "ZGGG", iata: "CAN", en: { name: "Guangzhou Baiyun Int'l", city: "Guangzhou", type: "4F", rwy: "3" }, zh: { name: "广州白云国际机场", city: "广州", type: "4F", rwy: "3" } },
+            { icao: "ZUTF", iata: "TFU", en: { name: "Chengdu Tianfu Int'l", city: "Chengdu", type: "4F", rwy: "3" }, zh: { name: "成都天府国际机场", city: "成都", type: "4F", rwy: "3" } }
+        ];
 
-    <script src="js/data.js"></script>
-    <script src="js/app.js"></script>
+        const dbAircraft = [
+            { id: "C919", 
+              en: { mfg: "COMAC", model: "C919", type: "Narrow-body", len: "38.9m", span: "35.8m", mtow: "71,500 kg", pax: "158-192" },
+              zh: { mfg: "中国商飞", model: "C919", type: "窄体客机", len: "38.9m", span: "35.8m", mtow: "71,500 kg", pax: "158-192" } },
+            { id: "ARJ21", 
+              en: { mfg: "COMAC", model: "C909 (ARJ21)", type: "Regional Jet", len: "33.5m", span: "27.3m", mtow: "40,500 kg", pax: "78-90" },
+              zh: { mfg: "中国商飞", model: "C909 (ARJ21)", type: "支线客机", len: "33.5m", span: "27.3m", mtow: "40,500 kg", pax: "78-90" } },
+            { id: "A320", 
+              en: { mfg: "Airbus", model: "A320neo", type: "Narrow-body", len: "37.6m", span: "35.8m", mtow: "79,000 kg", pax: "150-180" },
+              zh: { mfg: "空客", model: "A320neo", type: "窄体客机", len: "37.6m", span: "35.8m", mtow: "79,000 kg", pax: "150-180" } },
+            { id: "B737", 
+              en: { mfg: "Boeing", model: "737-800", type: "Narrow-body", len: "39.5m", span: "34.3m", mtow: "79,010 kg", pax: "162-189" },
+              zh: { mfg: "波音", model: "737-800", type: "窄体客机", len: "39.5m", span: "34.3m", mtow: "79,010 kg", pax: "162-189" } }
+        ];
+
+        /* ================= 状态管理 & 国际化 ================= */
+        let lang = 'en'; 
+        let activeApt = null;
+        let activeAc = dbAircraft[0];
+
+        function toggleLang() {
+            lang = lang === 'en' ? 'zh' : 'en';
+            document.body.className = lang === 'zh' ? 'lang-zh' : '';
+            
+            // 静态文本更新
+            document.querySelectorAll('.i18n').forEach(el => {
+                if (el.dataset[lang]) el.innerText = el.dataset[lang];
+            });
+            // Placeholder 更新
+            document.querySelectorAll('.i18n-ph').forEach(el => {
+                if (el.dataset[lang]) el.placeholder = el.dataset[lang];
+            });
+
+            // 动态数据重绘
+            renderAptList();
+            if(activeApt) renderAptDetail(activeApt);
+            renderAcList();
+            renderAcDetail(activeAc);
+        }
+
+        /* ================= 导航逻辑 ================= */
+        document.querySelectorAll('.nav-menu .btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.nav-menu .btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                
+                e.target.classList.add('active');
+                document.getElementById(e.target.dataset.target).classList.add('active');
+                
+                // 首次进入渲染
+                if(e.target.dataset.target === 'airports' && document.getElementById('apt-list').innerHTML === '') renderAptList();
+                if(e.target.dataset.target === 'aircraft' && document.getElementById('ac-list').innerHTML === '') {
+                    renderAcList(); renderAcDetail(activeAc);
+                }
+            });
+        });
+
+        /* ================= 机场模块 ================= */
+        function renderAptList(filter = '') {
+            const list = document.getElementById('apt-list');
+            list.innerHTML = '';
+            filter = filter.toLowerCase();
+            
+            dbAirports.forEach(apt => {
+                const name = apt[lang].name;
+                if(apt.icao.toLowerCase().includes(filter) || apt.iata.toLowerCase().includes(filter) || name.toLowerCase().includes(filter)) {
+                    const div = document.createElement('div');
+                    div.className = 'list-item';
+                    div.innerHTML = `<div style="font-weight:600">${apt.icao} / ${apt.iata}</div><div style="font-size:0.8rem; color:var(--text-muted)">${name}</div>`;
+                    div.onclick = () => {
+                        document.querySelectorAll('#apt-list .list-item').forEach(el => el.classList.remove('selected'));
+                        div.classList.add('selected');
+                        activeApt = apt;
+                        renderAptDetail(apt);
+                    };
+                    list.appendChild(div);
+                }
+            });
+        }
+
+        function renderAptDetail(apt) {
+            const l = apt[lang];
+            const dict = lang === 'en' ? 
+                ['City', 'Category', 'Runways'] : ['所在城市', '机场等级', '跑道数量'];
+            
+            document.getElementById('apt-detail').innerHTML = `
+                <h3 style="font-size:1.4rem; color:var(--accent-cyan); margin-bottom:4px;">${l.name}</h3>
+                <div style="color:var(--text-muted); margin-bottom:20px;">${apt.icao} / ${apt.iata}</div>
+                <div class="spec-grid">
+                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[0]}</span><span class="spec-val">${l.city}</span></div>
+                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[1]}</span><span class="spec-val">${l.type}</span></div>
+                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[2]}</span><span class="spec-val">${l.rwy}</span></div>
+                </div>
+            `;
+        }
+
+        document.getElementById('apt-search').addEventListener('input', (e) => renderAptList(e.target.value));
+
+        /* ================= 航空器模块 ================= */
+        function renderAcList() {
+            const list = document.getElementById('ac-list');
+            list.innerHTML = '';
+            dbAircraft.forEach(ac => {
+                const div = document.createElement('div');
+                div.className = 'list-item' + (activeAc.id === ac.id ? ' selected' : '');
+                div.innerHTML = `<div style="font-weight:600">${ac[lang].model}</div><div style="font-size:0.8rem; color:var(--text-muted)">${ac[lang].mfg}</div>`;
+                div.onclick = () => {
+                    activeAc = ac;
+                    renderAcList(); // re-render to update 'selected' class
+                    renderAcDetail(ac);
+                };
+                list.appendChild(div);
+            });
+        }
+
+        function renderAcDetail(ac) {
+            const l = ac[lang];
+            const dict = lang === 'en' ? 
+                ['Manufacturer', 'Category', 'Length', 'Wingspan', 'MTOW', 'Capacity'] : 
+                ['制造商', '机型分类', '机身长度', '翼展', '最大起飞重量', '载客量'];
+            
+            document.getElementById('ac-detail').innerHTML = `
+                <h3 style="font-size:1.4rem; color:var(--accent-cyan); margin-bottom:20px;">${l.model}</h3>
+                <div class="spec-grid">
+                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[0]}</span><span class="spec-val">${l.mfg}</span></div>
+                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[1]}</span><span class="spec-val">${l.type}</span></div>
+                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[2]}</span><span class="spec-val">${l.len}</span></div>
+                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[3]}</span><span class="spec-val">${l.span}</span></div>
+                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[4]}</span><span class="spec-val">${l.mtow}</span></div>
+                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[5]}</span><span class="spec-val">${l.pax}</span></div>
+                </div>
+            `;
+        }
+
+        /* ================= 飞行物理仿真引擎 ================= */
+        const dom = {
+            v: document.getElementById('sim-v'),
+            aoa: document.getElementById('sim-aoa'),
+            flap: document.getElementById('sim-flap'),
+            thr: document.getElementById('sim-thr'),
+            plane: document.getElementById('svg-plane'),
+            flapSvg: document.getElementById('svg-flap'),
+            vLift: document.getElementById('vec-lift'),
+            vDrag: document.getElementById('vec-drag'),
+            vThr: document.getElementById('vec-thrust'),
+            tLift: document.getElementById('txt-lift'),
+            tDrag: document.getElementById('txt-drag'),
+            tThr: document.getElementById('txt-thrust'),
+            hud: document.getElementById('hud-data')
+        };
+
+        function calcPhysics() {
+            let v = parseFloat(dom.v.value);
+            let aoa = parseFloat(dom.aoa.value);
+            let flap = parseFloat(dom.flap.value);
+            let thr = parseFloat(dom.thr.value);
+
+            // 更新UI数值
+            document.getElementById('val-v').innerText = v;
+            document.getElementById('val-aoa').innerText = aoa;
+            document.getElementById('val-flap').innerText = flap;
+            document.getElementById('val-thr').innerText = thr;
+
+            // 核心物理运算 (简化气动力模型)
+            // L = 0.5 * rho * V^2 * S * Cl
+            let Cl = (aoa * 0.1) + (flap * 0.02) + 0.2;
+            let stallStatus = "NOMINAL";
+            if (aoa > 15) { 
+                Cl *= 0.4; // 模拟失速骤降
+                stallStatus = "STALL WARNING"; 
+                document.getElementById('val-aoa').style.color = "var(--warning)";
+            } else {
+                document.getElementById('val-aoa').style.color = "var(--accent-cyan)";
+            }
+
+            let Cd = 0.02 + (Math.pow(Cl, 2) * 0.05) + (flap * 0.002);
+            
+            const scale = 0.004; // 缩放常数用于SVG显示
+            let lift = 0.5 * v * v * Cl * scale;
+            let drag = 0.5 * v * v * Cd * scale;
+            let thrust = thr * 1.5;
+
+            // SVG 限幅防溢出
+            lift = Math.max(10, Math.min(lift, 160));
+            drag = Math.max(10, Math.min(drag, 160));
+
+            // 更新 HUD
+            dom.hud.innerHTML = `V: ${v}m/s | AOA: ${aoa}° | FLAP: ${flap}°<br>CL: ${Cl.toFixed(2)} | CD: ${Cd.toFixed(3)}<br>STATUS: <span style="color:${stallStatus==='NOMINAL'?'#64FFDA':'#FF5252'}">${stallStatus}</span>`;
+
+            // SVG 变换与动画
+            dom.plane.setAttribute('transform', `rotate(${-aoa})`);
+            dom.flapSvg.setAttribute('transform', `rotate(${flap})`);
+            
+            // 矢量长度更新
+            dom.vLift.setAttribute('y2', -lift);
+            dom.tLift.setAttribute('y', -lift - 10);
+            
+            dom.vDrag.setAttribute('x2', -drag);
+            dom.tDrag.setAttribute('x', -drag - 45);
+            
+            dom.vThr.setAttribute('x2', thrust);
+            dom.tThr.setAttribute('x', thrust + 10);
+        }
+
+        // 绑定事件
+        ['v', 'aoa', 'flap', 'thr'].forEach(key => {
+            dom[key].addEventListener('input', calcPhysics);
+        });
+
+        // 初始化
+        calcPhysics();
+
+    </script>
 </body>
 </html>
