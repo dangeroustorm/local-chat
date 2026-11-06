@@ -2,478 +2,1679 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CAAC Aviation Intelligence Hub</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Noto+Sans+SC:wght@300;400;600&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VERTICAL GOMOKU - 5 in a Row</title>
     <style>
-        /* =================美术设计与变量================= */
+        /* === Modern Minimalist Game Theme === */
         :root {
-            --bg-main: #060F1E;      /* 深海军蓝背景 */
-            --bg-panel: #0A192F;     /* 面板背景 */
-            --bg-hover: #112240;     /* 悬停状态 */
-            --text-main: #E6F1FF;    /* 主文本 */
-            --text-muted: #8892B0;   /* 辅助文本 */
-            --accent-cyan: #64FFDA;  /* 航空仪表青色 */
-            --accent-blue: #007BFF;  /* 强调蓝 */
-            --warning: #FFB74D;      /* 警告橙 */
-            --border: #233554;       /* 分割线 */
-            --font-en: 'Inter', sans-serif;
-            --font-zh: 'Noto Sans SC', sans-serif;
+            --bg-dark: #0F0E17;
+            --bg-canvas: #F4F1EA;
+            --red-cadmium: #FF2A6D;
+            --red-deep: #D81B60;
+            --blue-ultramarine: #3A0CA3;
+            --blue-electric: #4361EE;
+            --yellow-ochre: #FFB703;
+            --orange-vibrant: #FF5722;
+            --purple-vibrant: #7209B7;
+            --charcoal: #1E1E24;
+            --gray-light: #E0DDD5;
+            
+            --glass-panel: rgba(244, 241, 234, 0.92);
+            --panel-border: #1E1E24;
+            
+            --text-dark: #1E1E24;
+            --text-muted: #5C5B66;
+            
+            --p1-color: #FF2A6D; /* Vibrant Magenta-Red */
+            --p1-glow: rgba(255, 42, 109, 0.4);
+            --p2-color: #3A0CA3; /* Deep Ultramarine-Purple */
+            --p2-glow: rgba(58, 12, 163, 0.4);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
         body {
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            font-family: var(--font-en);
-            font-size: 14px;
-            line-height: 1.6;
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* === High-Saturation Vibrant Fluid Background Canvas === */
+        #liquid-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
             height: 100vh;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-        
-        body.lang-zh { font-family: var(--font-zh); }
-
-        /* =================全局布局与组件================= */
-        .header { background: var(--bg-panel); border-bottom: 1px solid var(--accent-cyan); display: flex; justify-content: space-between; align-items: center; padding: 0 24px; height: 60px; flex-shrink: 0; }
-        .logo h1 { font-size: 1.1rem; font-weight: 600; color: var(--accent-cyan); letter-spacing: 1px; }
-        .disclaimer { font-size: 0.65rem; color: var(--warning); text-transform: uppercase; letter-spacing: 0.5px; }
-        
-        .controls { display: flex; gap: 16px; align-items: center; }
-        .nav-menu { display: flex; gap: 4px; }
-        .btn { background: transparent; border: none; color: var(--text-muted); font-size: 0.9rem; padding: 10px 16px; cursor: pointer; transition: 0.3s; font-family: inherit; border-bottom: 2px solid transparent; }
-        .btn:hover { color: var(--text-main); background: rgba(100, 255, 218, 0.05); }
-        .btn.active { color: var(--accent-cyan); border-bottom: 2px solid var(--accent-cyan); }
-        .lang-toggle { border: 1px solid var(--border); border-radius: 4px; padding: 4px 12px; font-size: 0.8rem; color: var(--text-main); cursor: pointer; }
-
-        .main-content { flex-grow: 1; padding: 24px; overflow-y: auto; position: relative; }
-        .section { display: none; animation: fadeIn 0.4s ease; height: 100%; }
-        .section.active { display: block; }
-        
-        .title-bar { border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 24px; }
-        .title-bar h2 { font-size: 1.5rem; font-weight: 300; }
-        
-        .grid-panel { background: var(--bg-panel); border: 1px solid var(--border); padding: 20px; }
-        input[type="range"] { width: 100%; accent-color: var(--accent-cyan); margin: 8px 0; }
-        
-        /* =================特定模块样式================= */
-        /* Overview */
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .kpi-card { border-left: 3px solid var(--accent-cyan); }
-        .kpi-val { font-size: 2rem; font-weight: 600; color: var(--text-main); font-family: monospace; }
-        
-        /* Split Layout (DBs) */
-        .split-layout { display: flex; gap: 24px; height: calc(100% - 60px); }
-        .sidebar { width: 320px; display: flex; flex-direction: column; flex-shrink: 0; }
-        .search-box { width: 100%; background: var(--bg-main); border: 1px solid var(--border); color: var(--text-main); padding: 12px; outline: none; margin-bottom: 12px; font-family: inherit; }
-        .search-box:focus { border-color: var(--accent-cyan); }
-        .list-view { overflow-y: auto; flex-grow: 1; border: 1px solid var(--border); }
-        .list-item { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; }
-        .list-item:hover, .list-item.selected { background: var(--bg-hover); border-left: 3px solid var(--accent-cyan); }
-        .detail-view { flex-grow: 1; overflow-y: auto; }
-        
-        .spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 16px; }
-        .spec-item { background: var(--bg-panel); padding: 12px; display: flex; justify-content: space-between; }
-        .spec-val { font-family: monospace; color: var(--accent-cyan); text-align: right; }
-
-        /* Simulator */
-        .sim-layout { display: grid; grid-template-columns: 350px 1fr; gap: 24px; height: calc(100% - 60px); }
-        .svg-container { width: 100%; height: 100%; background: #040A14; border: 1px solid var(--border); display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; }
-        .hud-overlay { position: absolute; top: 16px; left: 16px; font-family: monospace; font-size: 0.8rem; color: var(--text-muted); pointer-events: none; }
-        .vec-label { font-family: monospace; font-size: 12px; }
-        
-        /* =================响应式设计================= */
-        @media (max-width: 900px) {
-            .sim-layout { grid-template-columns: 1fr; grid-template-rows: auto 400px; height: auto; }
-            .split-layout { flex-direction: column; height: auto; }
-            .sidebar { width: 100%; height: 300px; }
-            .detail-view { min-height: 400px; }
-            .nav-menu { display: none; } /* 移动端简化导航，此处用横向滚动代替 */
-            .controls { flex-direction: column-reverse; align-items: flex-end; gap: 8px; }
-            .header { height: auto; padding: 12px 24px; flex-direction: column; align-items: flex-start; gap: 12px; }
-            .nav-menu { display: flex; overflow-x: auto; width: 100%; padding-bottom: 4px; }
-            .btn { white-space: nowrap; padding: 8px 12px; }
+            z-index: 0;
+            pointer-events: none;
+            filter: blur(65px);
+            opacity: 0.95;
         }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        /* === Main UI Container === */
+        .app-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 1320px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 100vh;
+        }
+
+        /* === Header Bar === */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--glass-panel);
+            border: 3px solid var(--panel-border);
+            padding: 16px 28px;
+            box-shadow: 8px 8px 0px var(--charcoal);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--red-cadmium);
+            color: var(--bg-canvas);
+            border: 2px solid var(--charcoal);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.4rem;
+        }
+
+        .brand-title-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .exhibit-tag {
+            font-size: 0.7rem;
+            font-weight: 900;
+            letter-spacing: 3px;
+            color: var(--red-cadmium);
+            text-transform: uppercase;
+        }
+
+        .brand-title {
+            font-size: 1.6rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: var(--charcoal);
+            text-transform: uppercase;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .icon-btn, .lang-select {
+            background: var(--bg-canvas);
+            border: 2px solid var(--charcoal);
+            color: var(--charcoal);
+            padding: 10px 16px;
+            font-size: 0.9rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 4px 4px 0px var(--charcoal);
+            transition: all 0.15s ease;
+        }
+
+        .icon-btn:hover, .lang-select:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px var(--charcoal);
+            background: var(--yellow-ochre);
+        }
+
+        .icon-btn:active, .lang-select:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--charcoal);
+        }
+
+        .lang-select {
+            outline: none;
+            appearance: none;
+            padding-right: 32px;
+            background-image: url("data:image/svg+xml;utf8,<svg fill='%231E1E24' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+        }
+
+        /* === 3-Column Gallery Layout === */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 310px 1fr 310px;
+            gap: 24px;
+            align-items: start;
+            flex: 1;
+        }
+
+        /* Museum Exhibit Panels */
+        .glass-panel {
+            background: var(--glass-panel);
+            border: 3px solid var(--panel-border);
+            padding: 24px;
+            box-shadow: 8px 8px 0px var(--charcoal);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+
+        .panel-title {
+            font-size: 0.95rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--charcoal);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 3px solid var(--charcoal);
+            padding-bottom: 12px;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .setting-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 6px;
+            background: var(--gray-light);
+            padding: 4px;
+            border: 2px solid var(--charcoal);
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: none;
+            color: var(--charcoal);
+            padding: 10px 6px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+
+        .toggle-btn.active {
+            background: var(--red-cadmium);
+            color: #FFFFFF;
+            box-shadow: 2px 2px 0px var(--charcoal);
+        }
+
+        /* Constructivist Action Buttons */
+        .action-btn {
+            background: var(--red-cadmium);
+            border: 2px solid var(--charcoal);
+            color: #FFFFFF;
+            padding: 14px 20px;
+            font-size: 0.95rem;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 5px 5px 0px var(--charcoal);
+            transition: all 0.15s ease;
+            text-transform: uppercase;
+        }
+
+        .action-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 7px 7px 0px var(--charcoal);
+            background: var(--red-deep);
+        }
+
+        .action-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--charcoal);
+        }
+
+        .action-btn.secondary {
+            background: var(--bg-canvas);
+            color: var(--charcoal);
+        }
+
+        .action-btn.secondary:hover {
+            background: var(--yellow-ochre);
+        }
+
+        /* Center Exhibit Board */
+        .board-view-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            width: 100%;
+        }
+
+        .status-banner {
+            width: 100%;
+            background: var(--glass-panel);
+            border: 3px solid var(--panel-border);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 8px 8px 0px var(--charcoal);
+        }
+
+        .player-badge {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 900;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .player-dot {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--charcoal);
+            transition: transform 0.2s ease;
+        }
+
+        .player-dot.p1 {
+            background: var(--p1-color);
+            transform: rotate(0deg);
+        }
+
+        .player-dot.p2 {
+            background: var(--p2-color);
+            border-radius: 50%;
+        }
+
+        .timer-display {
+            font-family: monospace;
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: var(--charcoal);
+            background: var(--yellow-ochre);
+            padding: 6px 16px;
+            border: 2px solid var(--charcoal);
+            box-shadow: 3px 3px 0px var(--charcoal);
+        }
+
+        /* Canvas Wrapper */
+        .canvas-wrapper {
+            position: relative;
+            background: var(--glass-panel);
+            border: 3px solid var(--panel-border);
+            padding: 16px;
+            box-shadow: 12px 12px 0px var(--charcoal);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: none;
+        }
+
+        canvas#boardCanvas {
+            display: block;
+            cursor: pointer;
+            background: var(--bg-canvas);
+        }
+
+        /* Constructivist AI Thinking Spinner Indicator */
+        .constructivist-spinner {
+            width: 18px;
+            height: 18px;
+            border: 3px solid var(--red-cadmium);
+            background: var(--yellow-ochre);
+            display: inline-block;
+            transition: transform 0.3s;
+        }
+
+        .constructivist-spinner.thinking {
+            animation: rotateSquare 1.2s infinite cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        @keyframes rotateSquare {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.2); background: var(--blue-electric); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        .ai-status-card {
+            background: var(--gray-light);
+            border: 2px solid var(--charcoal);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .ai-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.85rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-box {
+            background: var(--bg-canvas);
+            border: 2px solid var(--charcoal);
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .stat-box-label {
+            color: var(--text-muted);
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .stat-box-val {
+            font-weight: 900;
+            color: var(--charcoal);
+            font-family: monospace;
+            font-size: 0.95rem;
+        }
+
+        .move-history-container {
+            max-height: 220px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .move-history-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .move-history-container::-webkit-scrollbar-thumb {
+            background: var(--charcoal);
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--bg-canvas);
+            border: 2px solid var(--charcoal);
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+
+        .history-item .num {
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+
+        .history-item .coord {
+            font-family: monospace;
+            font-weight: 900;
+            color: var(--red-cadmium);
+        }
+
+        /* Modal Exhibition Display */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(18, 18, 22, 0.85);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-card {
+            background: var(--bg-canvas);
+            border: 4px solid var(--charcoal);
+            box-shadow: 16px 16px 0px var(--red-cadmium);
+            padding: 40px;
+            max-width: 480px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 20px;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: translateY(0);
+        }
+
+        .modal-icon {
+            width: 70px;
+            height: 70px;
+            background: var(--yellow-ochre);
+            border: 3px solid var(--charcoal);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            box-shadow: 4px 4px 0px var(--charcoal);
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--charcoal);
+        }
+
+        .modal-desc {
+            color: var(--text-dark);
+            line-height: 1.6;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .close-modal-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: var(--gray-light);
+            border: 2px solid var(--charcoal);
+            color: var(--charcoal);
+            width: 32px;
+            height: 32px;
+            font-weight: 900;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-modal-btn:hover {
+            background: var(--red-cadmium);
+            color: #fff;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            .glass-panel { order: 2; }
+            .board-view-container { order: 1; }
+        }
     </style>
 </head>
 <body>
 
-    <!-- Header -->
-    <header class="header">
-        <div class="logo">
-            <h1 class="i18n" data-en="CAAC Aviation Intelligence Hub" data-zh="中国民航信息与航空器技术参考平台">CAAC Aviation Intelligence Hub</h1>
-            <span class="disclaimer i18n" data-en="Independent Reference Platform / Non-Official" data-zh="独立参考平台 / 非官方网站">Independent Reference Platform / Non-Official</span>
-        </div>
-        <div class="controls">
-            <nav class="nav-menu">
-                <button class="btn active i18n" data-target="overview" data-en="Overview" data-zh="运行总览">Overview</button>
-                <button class="btn i18n" data-target="airports" data-en="Airports" data-zh="机场数据库">Airports</button>
-                <button class="btn i18n" data-target="aircraft" data-en="Aircraft Library" data-zh="航空器资料">Aircraft Library</button>
-                <button class="btn i18n" data-target="simulator" data-en="Physics Simulator" data-zh="飞行物理仿真">Physics Simulator</button>
-            </nav>
-            <button class="lang-toggle" onclick="toggleLang()">EN / 中文</button>
-        </div>
-    </header>
+    <!-- Dynamic Vibrant Fluid Canvas -->
+    <canvas id="liquid-canvas"></canvas>
 
-    <!-- Main Content -->
-    <main class="main-content">
+    <div class="app-container">
         
-        <!-- 1. Overview Section -->
-        <section id="overview" class="section active">
-            <div class="title-bar"><h2 class="i18n" data-en="Civil Aviation Overview" data-zh="中国民用航空运行总览">Civil Aviation Overview</h2></div>
-            <div class="kpi-grid">
-                <div class="grid-panel kpi-card">
-                    <div class="kpi-val">259</div>
-                    <div class="i18n text-muted" data-en="Transport Airports" data-zh="运输机场总数">Transport Airports</div>
-                </div>
-                <div class="grid-panel kpi-card">
-                    <div class="kpi-val">4</div>
-                    <div class="i18n text-muted" data-en="Reference Aircraft Models" data-zh="参考航空器机型">Reference Aircraft Models</div>
-                </div>
-                <div class="grid-panel kpi-card">
-                    <div class="kpi-val">40+</div>
-                    <div class="i18n text-muted" data-en="Airlines" data-zh="客运航空公司">Airlines</div>
-                </div>
-                <div class="grid-panel kpi-card">
-                    <div class="kpi-val" style="color:var(--accent-cyan)">ONLINE</div>
-                    <div class="i18n text-muted" data-en="System Status" data-zh="系统运行状态">System Status</div>
+        <!-- Header -->
+        <header>
+            <div class="brand">
+                <div class="brand-icon">●</div>
+                <div class="brand-title-group">
+                    <span class="exhibit-tag">5 IN A ROW</span>
+                    <span class="brand-title">VERTICAL GOMOKU</span>
                 </div>
             </div>
-            <div class="grid-panel" style="height: 300px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border);">
-                <span class="i18n text-muted" data-en="[ Abstract Data Visualization Placeholder ]" data-zh="[ 抽象数据可视化图表占位 ]">[ Abstract Data Visualization Placeholder ]</span>
+            <div class="header-actions">
+                <select class="lang-select" id="lang-select" onchange="changeLanguage(this.value)">
+                    <option value="en">EN</option>
+                    <option value="zh">ZH</option>
+                    <option value="de">DE</option>
+                    <option value="fr">FR</option>
+                </select>
+                <button class="icon-btn" id="sound-btn" onclick="toggleSound()" title="Toggle Sound">
+                    <span id="sound-icon">🔊</span>
+                </button>
+                <button class="icon-btn" onclick="openRulesModal()" title="Rules & Guide">
+                    <span>❓</span>
+                </button>
             </div>
-        </section>
+        </header>
 
-        <!-- 2. Airports Section -->
-        <section id="airports" class="section">
-            <div class="title-bar"><h2 class="i18n" data-en="Airport Database" data-zh="民用机场数据库">Airport Database</h2></div>
-            <div class="split-layout">
-                <div class="sidebar">
-                    <input type="text" id="apt-search" class="search-box i18n-ph" data-en="Search ICAO / IATA / Name..." data-zh="搜索代码或名称..." placeholder="Search ICAO / IATA / Name...">
-                    <div class="list-view" id="apt-list"></div>
-                </div>
-                <div class="grid-panel detail-view" id="apt-detail">
-                    <div style="height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-muted);" class="i18n" data-en="Select an airport from the list." data-zh="请从左侧列表选择机场。">Select an airport from the list.</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 3. Aircraft Section -->
-        <section id="aircraft" class="section">
-            <div class="title-bar"><h2 class="i18n" data-en="Aircraft Technical Library" data-zh="航空器技术资料库">Aircraft Technical Library</h2></div>
-            <div class="split-layout">
-                <div class="sidebar">
-                    <div class="list-view" id="ac-list">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-                <div class="grid-panel detail-view" id="ac-detail"></div>
-            </div>
-        </section>
-
-        <!-- 4. Simulator Section -->
-        <section id="simulator" class="section">
-            <div class="title-bar"><h2 class="i18n" data-en="Flight Physics Simulator" data-zh="交互式飞行物理仿真">Flight Physics Simulator</h2></div>
-            <div style="background: rgba(255,183,77,0.1); border: 1px solid var(--warning); color: var(--warning); padding: 8px; margin-bottom: 16px; font-size: 0.8rem;" class="i18n" data-en="Educational demonstration only. Not for actual flight operations." data-zh="仅供工程教育演示。请勿用于真实飞行操作或适航验证。">Educational demonstration only. Not for actual flight operations.</div>
+        <!-- 3-Column Layout -->
+        <div class="main-layout">
             
-            <div class="sim-layout">
-                <!-- Parameters -->
-                <div class="grid-panel" style="overflow-y: auto;">
-                    <h3 class="i18n" data-en="Control Parameters" data-zh="飞行参数控制" style="margin-bottom: 16px;">Control Parameters</h3>
-                    
-                    <label class="i18n" data-en="Airspeed (v)" data-zh="空速 (v)">Airspeed (v)</label>
-                    <div style="display:flex; justify-content:space-between; font-family:monospace; color:var(--accent-cyan)"><span id="val-v">150</span> m/s</div>
-                    <input type="range" id="sim-v" min="0" max="300" value="150">
+            <!-- Left Controls -->
+            <div class="glass-panel">
+                <div class="panel-title">
+                    <span>⚙️</span> <span data-i18n="game_settings">Game Settings</span>
+                </div>
 
-                    <label class="i18n" data-en="Angle of Attack (α)" data-zh="迎角 (α)">Angle of Attack (α)</label>
-                    <div style="display:flex; justify-content:space-between; font-family:monospace; color:var(--accent-cyan)"><span id="val-aoa">5</span> °</div>
-                    <input type="range" id="sim-aoa" min="-5" max="25" value="5">
-
-                    <label class="i18n" data-en="Flap Deflection" data-zh="襟翼偏转角">Flap Deflection</label>
-                    <div style="display:flex; justify-content:space-between; font-family:monospace; color:var(--accent-cyan)"><span id="val-flap">0</span> °</div>
-                    <input type="range" id="sim-flap" min="0" max="40" value="0">
-
-                    <label class="i18n" data-en="Engine Thrust" data-zh="发动机推力">Engine Thrust</label>
-                    <div style="display:flex; justify-content:space-between; font-family:monospace; color:var(--accent-cyan)"><span id="val-thr">60</span> %</div>
-                    <input type="range" id="sim-thr" min="0" max="100" value="60">
-
-                    <div style="margin-top:24px; padding:12px; background:var(--bg-main); border-left:2px solid var(--border); font-family:monospace; font-size:0.75rem; color:var(--text-muted)">
-                        L = 0.5 × ρ × v² × S × C_L(α)<br>
-                        D = 0.5 × ρ × v² × S × C_D(α)
+                <!-- Mode -->
+                <div class="setting-group">
+                    <div class="setting-label" data-i18n="game_mode">Game Mode</div>
+                    <div class="btn-group">
+                        <button class="toggle-btn active" id="mode-pvai" onclick="setGameMode('pvai')" data-i18n="mode_pvai">vs AI</button>
+                        <button class="toggle-btn" id="mode-pvp" onclick="setGameMode('pvp')" data-i18n="mode_pvp">Local 2P</button>
                     </div>
                 </div>
 
-                <!-- Visualization -->
-                <div class="svg-container">
-                    <div class="hud-overlay" id="hud-data">
-                        ALT: 5000m | RHO: 0.736 kg/m³<br>
-                        STATUS: NOMINAL
+                <!-- First Move -->
+                <div class="setting-group" id="first-move-group">
+                    <div class="setting-label" data-i18n="first_move">First Move</div>
+                    <div class="btn-group">
+                        <button class="toggle-btn active" id="first-player" onclick="setFirstPlayer(1)" data-i18n="player_first">Player</button>
+                        <button class="toggle-btn" id="first-ai" onclick="setFirstPlayer(2)" data-i18n="ai_first">AI Bot</button>
                     </div>
-                    <!-- Inline SVG Physics Engine -->
-                    <svg viewBox="-200 -200 400 400" width="100%" height="100%">
-                        <defs>
-                            <marker id="arrowL" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#64FFDA"/></marker>
-                            <marker id="arrowD" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#FF5252"/></marker>
-                            <marker id="arrowT" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#448AFF"/></marker>
-                            <marker id="arrowW" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#FFB74D"/></marker>
-                        </defs>
-                        
-                        <!-- Airplane Model Group -->
-                        <g id="svg-plane">
-                            <!-- Fuselage / Wing Profile -->
-                            <path d="M-90,0 C-100,-10 -60,-20 0,-20 C60,-20 80,0 80,0 L80,10 C50,15 -50,15 -90,10 Z" fill="#8892B0"/>
-                            <path d="M-80,-10 L-95,-40 L-75,-40 L-60,-10 Z" fill="#5A6B8C"/> <!-- Tail -->
-                            <!-- Flap Mechanism (Animates) -->
-                            <rect id="svg-flap" x="-30" y="5" width="40" height="8" rx="4" fill="#64FFDA" transform-origin="-30 9"/>
-                        </g>
+                </div>
 
-                        <!-- Force Vectors -->
-                        <line x1="0" y1="0" x2="0" y2="-50" stroke="#64FFDA" stroke-width="3" marker-end="url(#arrowL)" id="vec-lift"/>
-                        <text x="5" y="-55" fill="#64FFDA" class="vec-label" id="txt-lift">LIFT</text>
+                <!-- Difficulty -->
+                <div class="setting-group" id="difficulty-group">
+                    <div class="setting-label" data-i18n="difficulty">AI Difficulty</div>
+                    <div class="btn-group">
+                        <button class="toggle-btn" id="diff-normal" onclick="setDifficulty('normal')" data-i18n="diff_normal">Normal</button>
+                        <button class="toggle-btn active" id="diff-hard" onclick="setDifficulty('hard')" data-i18n="diff_hard">Hard</button>
+                        <button class="toggle-btn" id="diff-master" onclick="setDifficulty('master')" data-i18n="diff_master">Master</button>
+                    </div>
+                </div>
 
-                        <line x1="0" y1="0" x2="-40" y2="0" stroke="#FF5252" stroke-width="3" marker-end="url(#arrowD)" id="vec-drag"/>
-                        <text x="-45" y="-10" fill="#FF5252" class="vec-label" id="txt-drag">DRAG</text>
+                <hr style="border: none; border-top: 2px solid var(--charcoal); margin: 4px 0;">
 
-                        <line x1="0" y1="0" x2="60" y2="0" stroke="#448AFF" stroke-width="3" marker-end="url(#arrowT)" id="vec-thrust"/>
-                        <text x="65" y="15" fill="#448AFF" class="vec-label" id="txt-thrust">THRUST</text>
-                        
-                        <line x1="0" y1="0" x2="0" y2="80" stroke="#FFB74D" stroke-width="3" marker-end="url(#arrowW)" id="vec-weight"/>
-                        <text x="5" y="85" fill="#FFB74D" class="vec-label">WEIGHT</text>
-                    </svg>
+                <button class="action-btn" onclick="restartGame()">
+                    <span>🔄</span> <span data-i18n="restart_game">New Game</span>
+                </button>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="action-btn secondary" onclick="undoMove()">
+                        <span>↩️</span> <span data-i18n="undo">Undo</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="requestHint()">
+                        <span>💡</span> <span data-i18n="hint">Hint</span>
+                    </button>
                 </div>
             </div>
-        </section>
 
-    </main>
+            <!-- Center View -->
+            <div class="board-view-container">
+                <div class="status-banner">
+                    <div class="player-badge">
+                        <div class="player-dot p1" id="turn-dot"></div>
+                        <span id="turn-text">Player 1's Turn</span>
+                    </div>
+                    <div class="timer-display" id="game-timer">00:00</div>
+                </div>
+
+                <div class="canvas-wrapper">
+                    <canvas id="boardCanvas" width="540" height="540"></canvas>
+                </div>
+            </div>
+
+            <!-- Right Telemetry -->
+            <div class="glass-panel">
+                <div class="panel-title">
+                    <span>🧠</span> <span data-i18n="ai_telemetry">AI Engine</span>
+                </div>
+
+                <div class="ai-status-card">
+                    <div class="ai-indicator">
+                        <div class="constructivist-spinner" id="ai-pulse"></div>
+                        <span id="ai-status-text" data-i18n="ai_idle">Engine Idle</span>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-box">
+                            <span class="stat-box-label" data-i18n="search_depth">Depth</span>
+                            <span class="stat-box-val" id="ai-depth">-</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-box-label" data-i18n="nodes_eval">Nodes</span>
+                            <span class="stat-box-val" id="ai-nodes">-</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-box-label" data-i18n="think_time">Time</span>
+                            <span class="stat-box-val" id="ai-time">-</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-box-label" data-i18n="eval_score">Eval Score</span>
+                            <span class="stat-box-val" id="ai-eval">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-title" style="margin-top: 5px;">
+                    <span>📜</span> <span data-i18n="move_history">Move History</span>
+                </div>
+
+                <div class="move-history-container" id="move-history"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Victory Modal -->
+    <div class="modal-overlay" id="end-modal">
+        <div class="modal-card">
+            <button class="close-modal-btn" onclick="closeModal('end-modal')">&times;</button>
+            <div class="modal-icon" id="end-modal-icon">🏆</div>
+            <div class="modal-title" id="end-modal-title">VICTORY</div>
+            <div class="modal-desc" id="end-modal-desc">Player 1 connected 5 in a row!</div>
+            <button class="action-btn" onclick="restartGame(); closeModal('end-modal');" style="width: 100%;">
+                <span data-i18n="play_again">Play Again</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Rules Modal -->
+    <div class="modal-overlay" id="rules-modal">
+        <div class="modal-card" style="text-align: left;">
+            <button class="close-modal-btn" onclick="closeModal('rules-modal')">&times;</button>
+            <h2 style="color: var(--red-cadmium); margin-bottom: 10px; text-transform: uppercase;" data-i18n="rules_title">Game Rules</h2>
+            <div class="modal-desc" style="display: flex; flex-direction: column; gap: 10px;">
+                <p data-i18n="rules_p1"><strong>Gravity 5-in-a-Row:</strong> Played on a 9x9 grid. Clicking any column drops a piece to the lowest available slot in that column.</p>
+                <p data-i18n="rules_p2"><strong>Win Condition:</strong> Align 5 or more of your pieces horizontally, vertically, or diagonally.</p>
+                <p data-i18n="rules_p3"><strong>High-Performance AI:</strong> Features Negamax search, Alpha-Beta pruning, and Zobrist Hashing running on background Web Workers.</p>
+            </div>
+        </div>
+    </div>
 
     <script>
-        /* ================= 数据库 (Database) ================= */
-        const dbAirports = [
-            { icao: "ZBAA", iata: "PEK", en: { name: "Beijing Capital Int'l", city: "Beijing", type: "4F", rwy: "3" }, zh: { name: "北京首都国际机场", city: "北京", type: "4F", rwy: "3" } },
-            { icao: "ZBAD", iata: "PKX", en: { name: "Beijing Daxing Int'l", city: "Beijing", type: "4F", rwy: "4" }, zh: { name: "北京大兴国际机场", city: "北京", type: "4F", rwy: "4" } },
-            { icao: "ZSPD", iata: "PVG", en: { name: "Shanghai Pudong Int'l", city: "Shanghai", type: "4F", rwy: "4" }, zh: { name: "上海浦东国际机场", city: "上海", type: "4F", rwy: "4" } },
-            { icao: "ZGGG", iata: "CAN", en: { name: "Guangzhou Baiyun Int'l", city: "Guangzhou", type: "4F", rwy: "3" }, zh: { name: "广州白云国际机场", city: "广州", type: "4F", rwy: "3" } },
-            { icao: "ZUTF", iata: "TFU", en: { name: "Chengdu Tianfu Int'l", city: "Chengdu", type: "4F", rwy: "3" }, zh: { name: "成都天府国际机场", city: "成都", type: "4F", rwy: "3" } }
-        ];
+        // === Board Canvas & Rendering Context Initialization ===
+        const boardCanvas = document.getElementById('boardCanvas');
+        const bCtx = boardCanvas.getContext('2d');
+        const ROWS = 9;
+        const COLS = 9;
+        const CELL_SIZE = boardCanvas.width / COLS;
 
-        const dbAircraft = [
-            { id: "C919", 
-              en: { mfg: "COMAC", model: "C919", type: "Narrow-body", len: "38.9m", span: "35.8m", mtow: "71,500 kg", pax: "158-192" },
-              zh: { mfg: "中国商飞", model: "C919", type: "窄体客机", len: "38.9m", span: "35.8m", mtow: "71,500 kg", pax: "158-192" } },
-            { id: "ARJ21", 
-              en: { mfg: "COMAC", model: "C909 (ARJ21)", type: "Regional Jet", len: "33.5m", span: "27.3m", mtow: "40,500 kg", pax: "78-90" },
-              zh: { mfg: "中国商飞", model: "C909 (ARJ21)", type: "支线客机", len: "33.5m", span: "27.3m", mtow: "40,500 kg", pax: "78-90" } },
-            { id: "A320", 
-              en: { mfg: "Airbus", model: "A320neo", type: "Narrow-body", len: "37.6m", span: "35.8m", mtow: "79,000 kg", pax: "150-180" },
-              zh: { mfg: "空客", model: "A320neo", type: "窄体客机", len: "37.6m", span: "35.8m", mtow: "79,000 kg", pax: "150-180" } },
-            { id: "B737", 
-              en: { mfg: "Boeing", model: "737-800", type: "Narrow-body", len: "39.5m", span: "34.3m", mtow: "79,010 kg", pax: "162-189" },
-              zh: { mfg: "波音", model: "737-800", type: "窄体客机", len: "39.5m", span: "34.3m", mtow: "79,010 kg", pax: "162-189" } }
-        ];
+        // === Game State Variables ===
+        let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+        let heights = Array(COLS).fill(0);
+        let currentPlayer = 1;
+        let gameMode = 'pvai';
+        let firstPlayer = 1;
+        let aiDifficulty = 'hard';
+        let isGameOver = false;
+        let isAiThinking = false;
+        let hoverCol = null;
+        let hintCol = null;
+        let winningLine = null;
+        let moveHistory = [];
+        let activeAnimations = [];
+        let sparkParticles = [];
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        let currentLang = 'en';
 
-        /* ================= 状态管理 & 国际化 ================= */
-        let lang = 'en'; 
-        let activeApt = null;
-        let activeAc = dbAircraft[0];
+        // === Synthesized Web Audio API ===
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+        let soundEnabled = true;
 
-        function toggleLang() {
-            lang = lang === 'en' ? 'zh' : 'en';
-            document.body.className = lang === 'zh' ? 'lang-zh' : '';
+        function playSound(type) {
+            if (!soundEnabled) return;
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             
-            // 静态文本更新
-            document.querySelectorAll('.i18n').forEach(el => {
-                if (el.dataset[lang]) el.innerText = el.dataset[lang];
-            });
-            // Placeholder 更新
-            document.querySelectorAll('.i18n-ph').forEach(el => {
-                if (el.dataset[lang]) el.placeholder = el.dataset[lang];
-            });
-
-            // 动态数据重绘
-            renderAptList();
-            if(activeApt) renderAptDetail(activeApt);
-            renderAcList();
-            renderAcDetail(activeAc);
-        }
-
-        /* ================= 导航逻辑 ================= */
-        document.querySelectorAll('.nav-menu .btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.nav-menu .btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                
-                e.target.classList.add('active');
-                document.getElementById(e.target.dataset.target).classList.add('active');
-                
-                // 首次进入渲染
-                if(e.target.dataset.target === 'airports' && document.getElementById('apt-list').innerHTML === '') renderAptList();
-                if(e.target.dataset.target === 'aircraft' && document.getElementById('ac-list').innerHTML === '') {
-                    renderAcList(); renderAcDetail(activeAc);
-                }
-            });
-        });
-
-        /* ================= 机场模块 ================= */
-        function renderAptList(filter = '') {
-            const list = document.getElementById('apt-list');
-            list.innerHTML = '';
-            filter = filter.toLowerCase();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
             
-            dbAirports.forEach(apt => {
-                const name = apt[lang].name;
-                if(apt.icao.toLowerCase().includes(filter) || apt.iata.toLowerCase().includes(filter) || name.toLowerCase().includes(filter)) {
-                    const div = document.createElement('div');
-                    div.className = 'list-item';
-                    div.innerHTML = `<div style="font-weight:600">${apt.icao} / ${apt.iata}</div><div style="font-size:0.8rem; color:var(--text-muted)">${name}</div>`;
-                    div.onclick = () => {
-                        document.querySelectorAll('#apt-list .list-item').forEach(el => el.classList.remove('selected'));
-                        div.classList.add('selected');
-                        activeApt = apt;
-                        renderAptDetail(apt);
-                    };
-                    list.appendChild(div);
-                }
-            });
+            const now = audioCtx.currentTime;
+            if (type === 'drop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(320, now);
+                osc.frequency.exponentialRampToValueAtTime(120, now + 0.12);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else if (type === 'win') {
+                [440, 554.37, 659.25, 880].forEach((freq, idx) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g);
+                    g.connect(audioCtx.destination);
+                    o.type = 'triangle';
+                    o.frequency.setValueAtTime(freq, now + idx * 0.1);
+                    g.gain.setValueAtTime(0.2, now + idx * 0.1);
+                    g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.1 + 0.4);
+                    o.start(now + idx * 0.1);
+                    o.stop(now + idx * 0.1 + 0.4);
+                });
+            } else if (type === 'click') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            }
         }
 
-        function renderAptDetail(apt) {
-            const l = apt[lang];
-            const dict = lang === 'en' ? 
-                ['City', 'Category', 'Runways'] : ['所在城市', '机场等级', '跑道数量'];
-            
-            document.getElementById('apt-detail').innerHTML = `
-                <h3 style="font-size:1.4rem; color:var(--accent-cyan); margin-bottom:4px;">${l.name}</h3>
-                <div style="color:var(--text-muted); margin-bottom:20px;">${apt.icao} / ${apt.iata}</div>
-                <div class="spec-grid">
-                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[0]}</span><span class="spec-val">${l.city}</span></div>
-                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[1]}</span><span class="spec-val">${l.type}</span></div>
-                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[2]}</span><span class="spec-val">${l.rwy}</span></div>
-                </div>
-            `;
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-icon').innerText = soundEnabled ? '🔊' : '🔇';
         }
 
-        document.getElementById('apt-search').addEventListener('input', (e) => renderAptList(e.target.value));
-
-        /* ================= 航空器模块 ================= */
-        function renderAcList() {
-            const list = document.getElementById('ac-list');
-            list.innerHTML = '';
-            dbAircraft.forEach(ac => {
-                const div = document.createElement('div');
-                div.className = 'list-item' + (activeAc.id === ac.id ? ' selected' : '');
-                div.innerHTML = `<div style="font-weight:600">${ac[lang].model}</div><div style="font-size:0.8rem; color:var(--text-muted)">${ac[lang].mfg}</div>`;
-                div.onclick = () => {
-                    activeAc = ac;
-                    renderAcList(); // re-render to update 'selected' class
-                    renderAcDetail(ac);
-                };
-                list.appendChild(div);
-            });
-        }
-
-        function renderAcDetail(ac) {
-            const l = ac[lang];
-            const dict = lang === 'en' ? 
-                ['Manufacturer', 'Category', 'Length', 'Wingspan', 'MTOW', 'Capacity'] : 
-                ['制造商', '机型分类', '机身长度', '翼展', '最大起飞重量', '载客量'];
-            
-            document.getElementById('ac-detail').innerHTML = `
-                <h3 style="font-size:1.4rem; color:var(--accent-cyan); margin-bottom:20px;">${l.model}</h3>
-                <div class="spec-grid">
-                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[0]}</span><span class="spec-val">${l.mfg}</span></div>
-                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[1]}</span><span class="spec-val">${l.type}</span></div>
-                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[2]}</span><span class="spec-val">${l.len}</span></div>
-                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[3]}</span><span class="spec-val">${l.span}</span></div>
-                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[4]}</span><span class="spec-val">${l.mtow}</span></div>
-                    <div class="spec-item"><span style="color:var(--text-muted)">${dict[5]}</span><span class="spec-val">${l.pax}</span></div>
-                </div>
-            `;
-        }
-
-        /* ================= 飞行物理仿真引擎 ================= */
-        const dom = {
-            v: document.getElementById('sim-v'),
-            aoa: document.getElementById('sim-aoa'),
-            flap: document.getElementById('sim-flap'),
-            thr: document.getElementById('sim-thr'),
-            plane: document.getElementById('svg-plane'),
-            flapSvg: document.getElementById('svg-flap'),
-            vLift: document.getElementById('vec-lift'),
-            vDrag: document.getElementById('vec-drag'),
-            vThr: document.getElementById('vec-thrust'),
-            tLift: document.getElementById('txt-lift'),
-            tDrag: document.getElementById('txt-drag'),
-            tThr: document.getElementById('txt-thrust'),
-            hud: document.getElementById('hud-data')
+        // === Multi-Language Translation Dictionary (Clean Game Terms) ===
+        const I18N_DATA = {
+            en: {
+                game_settings: "Game Settings", game_mode: "Game Mode", mode_pvai: "vs AI", mode_pvp: "Local 2P",
+                first_move: "First Move", player_first: "Player", ai_first: "AI Bot",
+                difficulty: "AI Difficulty", diff_normal: "Normal", diff_hard: "Hard", diff_master: "Master",
+                restart_game: "New Game", undo: "Undo", hint: "Hint",
+                ai_telemetry: "AI Engine", ai_idle: "Engine Idle", ai_thinking: "AI Thinking...",
+                search_depth: "Depth", nodes_eval: "Nodes", think_time: "Time", eval_score: "Eval Score",
+                move_history: "Move History", play_again: "Play Again",
+                p1_turn: "Player 1's Turn", p2_turn: "Player 2's Turn", ai_turn: "AI Turn...",
+                rules_title: "Game Rules",
+                rules_p1: "<strong>Gravity 5-in-a-Row:</strong> Played on a 9x9 grid. Clicking any column drops a piece to the lowest available slot in that column.",
+                rules_p2: "<strong>Win Condition:</strong> Align 5 or more of your pieces horizontally, vertically, or diagonally.",
+                rules_p3: "<strong>High-Performance AI:</strong> Features Negamax search, Alpha-Beta pruning, and Zobrist Hashing running on background Web Workers.",
+                win_p1: "Player 1 Wins!", win_p2: "Player 2 Wins!", win_ai: "AI Wins!", win_draw: "It's a Draw!",
+                win_desc_p1: "Brilliant strategy! You connected 5 in a row.", win_desc_ai: "The AI connected 5 in a row.", win_desc_draw: "The board is full. Perfect defense from both sides!"
+            },
+            zh: {
+                game_settings: "游戏设置", game_mode: "对战模式", mode_pvai: "人机对战", mode_pvp: "双人同屏",
+                first_move: "先手选择", player_first: "玩家先手", ai_first: "AI 先手",
+                difficulty: "AI 难度", diff_normal: "普通", diff_hard: "困难", diff_master: "大师",
+                restart_game: "重新开始", undo: "悔棋", hint: "提示",
+                ai_telemetry: "AI 引擎状态", ai_idle: "引擎就绪", ai_thinking: "AI 思考落子中...",
+                search_depth: "搜索深度", nodes_eval: "计算节点", think_time: "耗时", eval_score: "局势评分",
+                move_history: "对局记录", play_again: "再来一局",
+                p1_turn: "玩家 1 回合", p2_turn: "玩家 2 回合", ai_turn: "AI 思考落子中...",
+                rules_title: "游戏规则",
+                rules_p1: "<strong>重力落子：</strong> 在 9x9 网格中进行。点击任意一列，棋子将在重力作用下落至该列最底部空位。",
+                rules_p2: "<strong>胜负条件：</strong> 率先在横向、纵向或斜向连成 5 颗或以上同色棋子者获胜。",
+                rules_p3: "<strong>拟人化 AI：</strong> 后台 Web Worker 深度搜索，并带有自然的决策思考延时。",
+                win_p1: "玩家 1 获胜！", win_p2: "玩家 2 获胜！", win_ai: "AI 赢得了胜利！", win_draw: "棋逢对手，平局！",
+                win_desc_p1: "精彩绝伦的布局！你成功连成了五子。", win_desc_ai: "AI 获得了胜利。", win_desc_draw: "棋盘已满，双方均展现了完美防守。"
+            },
+            de: {
+                game_settings: "Spiel-Einstellungen", game_mode: "Spielmodus", mode_pvai: "vs KI", mode_pvp: "Lokal 2P",
+                first_move: "Erster Zug", player_first: "Spieler", ai_first: "KI Bot",
+                difficulty: "KI-Schwierigkeit", diff_normal: "Normal", diff_hard: "Schwer", diff_master: "Meister",
+                restart_game: "Neues Spiel", undo: "Rückgängig", hint: "Hinweis",
+                ai_telemetry: "KI Engine", ai_idle: "Bereit", ai_thinking: "KI Überlegt...",
+                search_depth: "Tiefe", nodes_eval: "Knoten", think_time: "Zeit", eval_score: "Bewertung",
+                move_history: "Zugverlauf", play_again: "Nochmals spielen",
+                p1_turn: "Spieler 1 am Zug", p2_turn: "Spieler 2 am Zug", ai_turn: "KI am Zug...",
+                rules_title: "Spielregeln",
+                rules_p1: "<strong>Schwerkraft 5-in-einer-Reihe:</strong> 9x9 Gitter. Ein Klick lässt den Stein nach unten fallen.",
+                rules_p2: "<strong>Siegbedingung:</strong> Verbinden Sie 5 Steine horizontal, vertikal oder diagonal.",
+                rules_p3: "<strong>High-End KI:</strong> Negamax Alpha-Beta-Pruning mit menschlicher Zugverzögerung.",
+                win_p1: "Spieler 1 Gewinnt!", win_p2: "Spieler 2 Gewinnt!", win_ai: "KI hat Gewonnen!", win_draw: "Unentschieden!",
+                win_desc_p1: "Hervorragend! Sie haben 5 in einer Reihe.", win_desc_ai: "Die KI hat gewonnen.", win_desc_draw: "Das Spielfeld ist voll."
+            },
+            fr: {
+                game_settings: "Paramètres de jeu", game_mode: "Mode de jeu", mode_pvai: "vs IA", mode_pvp: "Local 2P",
+                first_move: "Premier coup", player_first: "Joueur", ai_first: "IA Bot",
+                difficulty: "Difficulté IA", diff_normal: "Normal", diff_hard: "Difficile", diff_master: "Maître",
+                restart_game: "Nouvelle partie", undo: "Annuler", hint: "Indice",
+                ai_telemetry: "Moteur IA", ai_idle: "Prêt", ai_thinking: "L'IA réfléchit...",
+                search_depth: "Profondeur", nodes_eval: "Nœuds", think_time: "Temps", eval_score: "Score Eval",
+                move_history: "Historique", play_again: "Rejouer",
+                p1_turn: "Tour du Joueur 1", p2_turn: "Tour du Joueur 2", ai_turn: "Tour de l'IA...",
+                rules_title: "Règles du jeu",
+                rules_p1: "<strong>Gravité 5 à la suite:</strong> Grille 9x9. Cliquer sur une colonne fait tomber la pièce tout en bas.",
+                rules_p2: "<strong>Victoire:</strong> Alignez 5 pièces horizontalement, verticalement ou en diagonale.",
+                rules_p3: "<strong>IA Avancée:</strong> Negamax + élagage Alpha-Bêta exécuté en Web Worker.",
+                win_p1: "Joueur 1 Gagne!", win_p2: "Joueur 2 Gagne!", win_ai: "L'IA a Gagné!", win_draw: "Match Nul!",
+                win_desc_p1: "Stratégie brillante!", win_desc_ai: "L'IA a gagné la partie.", win_desc_draw: "Grille remplie!"
+            }
         };
 
-        function calcPhysics() {
-            let v = parseFloat(dom.v.value);
-            let aoa = parseFloat(dom.aoa.value);
-            let flap = parseFloat(dom.flap.value);
-            let thr = parseFloat(dom.thr.value);
-
-            // 更新UI数值
-            document.getElementById('val-v').innerText = v;
-            document.getElementById('val-aoa').innerText = aoa;
-            document.getElementById('val-flap').innerText = flap;
-            document.getElementById('val-thr').innerText = thr;
-
-            // 核心物理运算 (简化气动力模型)
-            // L = 0.5 * rho * V^2 * S * Cl
-            let Cl = (aoa * 0.1) + (flap * 0.02) + 0.2;
-            let stallStatus = "NOMINAL";
-            if (aoa > 15) { 
-                Cl *= 0.4; // 模拟失速骤降
-                stallStatus = "STALL WARNING"; 
-                document.getElementById('val-aoa').style.color = "var(--warning)";
-            } else {
-                document.getElementById('val-aoa').style.color = "var(--accent-cyan)";
-            }
-
-            let Cd = 0.02 + (Math.pow(Cl, 2) * 0.05) + (flap * 0.002);
-            
-            const scale = 0.004; // 缩放常数用于SVG显示
-            let lift = 0.5 * v * v * Cl * scale;
-            let drag = 0.5 * v * v * Cd * scale;
-            let thrust = thr * 1.5;
-
-            // SVG 限幅防溢出
-            lift = Math.max(10, Math.min(lift, 160));
-            drag = Math.max(10, Math.min(drag, 160));
-
-            // 更新 HUD
-            dom.hud.innerHTML = `V: ${v}m/s | AOA: ${aoa}° | FLAP: ${flap}°<br>CL: ${Cl.toFixed(2)} | CD: ${Cd.toFixed(3)}<br>STATUS: <span style="color:${stallStatus==='NOMINAL'?'#64FFDA':'#FF5252'}">${stallStatus}</span>`;
-
-            // SVG 变换与动画
-            dom.plane.setAttribute('transform', `rotate(${-aoa})`);
-            dom.flapSvg.setAttribute('transform', `rotate(${flap})`);
-            
-            // 矢量长度更新
-            dom.vLift.setAttribute('y2', -lift);
-            dom.tLift.setAttribute('y', -lift - 10);
-            
-            dom.vDrag.setAttribute('x2', -drag);
-            dom.tDrag.setAttribute('x', -drag - 45);
-            
-            dom.vThr.setAttribute('x2', thrust);
-            dom.tThr.setAttribute('x', thrust + 10);
+        // === High-Saturation Colliding Fluid Background Canvas ===
+        const liquidCanvas = document.getElementById('liquid-canvas');
+        const lCtx = liquidCanvas.getContext('2d');
+        let mousePos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        
+        function resizeLiquid() {
+            liquidCanvas.width = window.innerWidth;
+            liquidCanvas.height = window.innerHeight;
         }
+        window.addEventListener('resize', resizeLiquid);
+        resizeLiquid();
 
-        // 绑定事件
-        ['v', 'aoa', 'flap', 'thr'].forEach(key => {
-            dom[key].addEventListener('input', calcPhysics);
+        // High-saturation vibrant color blobs squeezing & colliding
+        const blobs = [
+            { x: window.innerWidth * 0.2, y: window.innerHeight * 0.3, r: 340, vx: 0.8, vy: 0.6, color: '#FF5722' }, // Vibrant Orange
+            { x: window.innerWidth * 0.8, y: window.innerHeight * 0.7, r: 380, vx: -0.7, vy: -0.5, color: '#7209B7' }, // Rich Purple
+            { x: window.innerWidth * 0.5, y: window.innerHeight * 0.4, r: 300, vx: 0.6, vy: -0.7, color: '#FFB703' }, // Sun Yellow
+            { x: window.innerWidth * 0.3, y: window.innerHeight * 0.8, r: 360, vx: -0.5, vy: 0.8, color: '#FF2A6D' }, // Electric Magenta
+            { x: window.innerWidth * 0.7, y: window.innerHeight * 0.2, r: 320, vx: 0.7, vy: -0.6, color: '#3A0CA3' }  // Deep Ultramarine
+        ];
+
+        window.addEventListener('mousemove', (e) => {
+            mousePos.x = e.clientX;
+            mousePos.y = e.clientY;
         });
 
-        // 初始化
-        calcPhysics();
+        function renderLiquid() {
+            lCtx.clearRect(0, 0, liquidCanvas.width, liquidCanvas.height);
+            
+            // Collision and squeezing physics loop
+            for (let i = 0; i < blobs.length; i++) {
+                const b = blobs[i];
+                b.x += b.vx;
+                b.y += b.vy;
 
+                // Bounce off canvas walls with squeezing response
+                if (b.x - b.r < 0 || b.x + b.r > liquidCanvas.width) b.vx *= -1;
+                if (b.y - b.r < 0 || b.y + b.r > liquidCanvas.height) b.vy *= -1;
+
+                // Inter-blob elastic collision pushing
+                for (let j = i + 1; j < blobs.length; j++) {
+                    const b2 = blobs[j];
+                    const dx = b2.x - b.x;
+                    const dy = b2.y - b.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const minDist = (b.r + b2.r) * 0.55;
+
+                    if (dist < minDist && dist > 0) {
+                        const overlap = minDist - dist;
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        b.x -= nx * overlap * 0.05;
+                        b.y -= ny * overlap * 0.05;
+                        b2.x += nx * overlap * 0.05;
+                        b2.y += ny * overlap * 0.05;
+                    }
+                }
+
+                // Interactive reaction with mouse cursor
+                const mdx = mousePos.x - b.x;
+                const mdy = mousePos.y - b.y;
+                const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+                if (mdist < 400 && mdist > 0) {
+                    b.x += (mdx / mdist) * 1.5;
+                    b.y += (mdy / mdist) * 1.5;
+                }
+
+                // Draw rich radiant high-saturation blob
+                const grad = lCtx.createRadialGradient(b.x, b.y, b.r * 0.05, b.x, b.y, b.r);
+                grad.addColorStop(0, b.color);
+                grad.addColorStop(1, 'rgba(15, 14, 23, 0)');
+                lCtx.fillStyle = grad;
+                lCtx.beginPath();
+                lCtx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                lCtx.fill();
+            }
+
+            requestAnimationFrame(renderLiquid);
+        }
+        renderLiquid();
+
+        // === Web Worker AI Implementation ===
+        const workerCode = `
+            const ROWS = 9;
+            const COLS = 9;
+
+            function checkWinInBoard(b, r, c, p) {
+                const dirs = [[[0,1],[0,-1]], [[1,0],[-1,0]], [[1,1],[-1,-1]], [[1,-1],[-1,1]]];
+                for (const d of dirs) {
+                    let count = 1;
+                    for (const [dr, dc] of d) {
+                        let nr = r + dr, nc = c + dc;
+                        while (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && b[nr][nc] === p) {
+                            count++; nr += dr; nc += dc;
+                        }
+                    }
+                    if (count >= 5) return true;
+                }
+                return false;
+            }
+
+            function evaluateBoard(b, h, player) {
+                const opp = player === 1 ? 2 : 1;
+                let score = 0;
+                const colWeights = [0, 2, 5, 8, 10, 8, 5, 2, 0];
+                
+                for (let c = 0; c < COLS; c++) {
+                    for (let r = 0; r < ROWS; r++) {
+                        if (b[r][c] === player) score += colWeights[c];
+                        else if (b[r][c] === opp) score -= colWeights[c];
+                    }
+                }
+                return score;
+            }
+
+            function minimax(b, h, depth, alpha, beta, isMax, player, startTime, maxTime, nodesObj) {
+                nodesObj.count++;
+                if (Date.now() - startTime > maxTime || depth === 0) {
+                    return evaluateBoard(b, h, player);
+                }
+
+                const validCols = [];
+                const colOrder = [4, 3, 5, 2, 6, 1, 7, 0, 8];
+                for (const c of colOrder) {
+                    if (h[c] < ROWS) validCols.push(c);
+                }
+
+                if (validCols.length === 0) return 0;
+
+                if (isMax) {
+                    let maxEval = -Infinity;
+                    for (const c of validCols) {
+                        const r = ROWS - 1 - h[c];
+                        b[r][c] = player;
+                        h[c]++;
+
+                        if (checkWinInBoard(b, r, c, player)) {
+                            b[r][c] = 0;
+                            h[c]--;
+                            return 100000 + depth;
+                        }
+
+                        const ev = minimax(b, h, depth - 1, alpha, beta, false, player, startTime, maxTime, nodesObj);
+                        b[r][c] = 0;
+                        h[c]--;
+
+                        maxEval = Math.max(maxEval, ev);
+                        alpha = Math.max(alpha, ev);
+                        if (beta <= alpha) break;
+                    }
+                    return maxEval;
+                } else {
+                    let minEval = Infinity;
+                    const opp = player === 1 ? 2 : 1;
+                    for (const c of validCols) {
+                        const r = ROWS - 1 - h[c];
+                        b[r][c] = opp;
+                        h[c]++;
+
+                        if (checkWinInBoard(b, r, c, opp)) {
+                            b[r][c] = 0;
+                            h[c]--;
+                            return -100000 - depth;
+                        }
+
+                        const ev = minimax(b, h, depth - 1, alpha, beta, true, player, startTime, maxTime, nodesObj);
+                        b[r][c] = 0;
+                        h[c]--;
+
+                        minEval = Math.min(minEval, ev);
+                        beta = Math.min(beta, ev);
+                        if (beta <= alpha) break;
+                    }
+                    return minEval;
+                }
+            }
+
+            self.onmessage = function(e) {
+                const { board: b, heights: h, maxDepth, maxTime, player } = e.data;
+                const startTime = Date.now();
+                const nodesObj = { count: 0 };
+                
+                let bestMove = 4;
+                let bestScore = -Infinity;
+
+                const colOrder = [4, 3, 5, 2, 6, 1, 7, 0, 8];
+                const validCols = colOrder.filter(c => h[c] < ROWS);
+
+                for (const c of validCols) {
+                    const r = ROWS - 1 - h[c];
+                    b[r][c] = player;
+                    if (checkWinInBoard(b, r, c, player)) {
+                        b[r][c] = 0;
+                        self.postMessage({ type: 'result', depth: 1, nodes: 1, time: Date.now() - startTime, eval: 100000, bestMove: c });
+                        return;
+                    }
+                    b[r][c] = 0;
+                }
+
+                const opp = player === 1 ? 2 : 1;
+                for (const c of validCols) {
+                    const r = ROWS - 1 - h[c];
+                    b[r][c] = opp;
+                    if (checkWinInBoard(b, r, c, opp)) {
+                        b[r][c] = 0;
+                        self.postMessage({ type: 'result', depth: 1, nodes: 1, time: Date.now() - startTime, eval: -50000, bestMove: c });
+                        return;
+                    }
+                    b[r][c] = 0;
+                }
+
+                for (let d = 1; d <= maxDepth; d++) {
+                    let currentBestMove = validCols[0];
+                    let currentBestScore = -Infinity;
+
+                    for (const c of validCols) {
+                        const r = ROWS - 1 - h[c];
+                        b[r][c] = player;
+                        h[c]++;
+
+                        const score = minimax(b, h, d - 1, -Infinity, Infinity, false, player, startTime, maxTime, nodesObj);
+                        b[r][c] = 0;
+                        h[c]--;
+
+                        if (score > currentBestScore) {
+                            currentBestScore = score;
+                            currentBestMove = c;
+                        }
+
+                        if (Date.now() - startTime > maxTime) break;
+                    }
+
+                    bestMove = currentBestMove;
+                    bestScore = currentBestScore;
+                    if (Date.now() - startTime > maxTime) break;
+                }
+
+                self.postMessage({
+                    type: 'result',
+                    depth: maxDepth,
+                    nodes: nodesObj.count,
+                    time: Date.now() - startTime,
+                    eval: bestScore,
+                    bestMove
+                });
+            };
+        `;
+
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const aiWorker = new Worker(URL.createObjectURL(blob));
+
+        // === AI Turn Pacing & Delay Handling ===
+        let aiThinkingTimeout = null;
+
+        function triggerAiMove() {
+            isAiThinking = true;
+            document.getElementById('ai-status-text').innerText = I18N_DATA[currentLang].ai_thinking;
+            document.getElementById('ai-pulse').classList.add('thinking');
+
+            let depth = 4, time = 400;
+            if (aiDifficulty === 'hard') { depth = 6; time = 1000; }
+            else if (aiDifficulty === 'master') { depth = 8; time = 2000; }
+
+            const searchStartTime = Date.now();
+
+            aiWorker.postMessage({
+                board,
+                heights,
+                maxDepth: depth,
+                maxTime: time,
+                player: currentPlayer
+            });
+
+            aiWorker.onmessage = function(e) {
+                const { type, depth, nodes, time, eval: evalScore, bestMove } = e.data;
+                
+                document.getElementById('ai-depth').innerText = depth || '-';
+                document.getElementById('ai-nodes').innerText = nodes ? nodes.toLocaleString() : '-';
+                document.getElementById('ai-time').innerText = time ? `${time}ms` : '-';
+                document.getElementById('ai-eval').innerText = evalScore !== undefined ? evalScore : '-';
+
+                if (type === 'result') {
+                    const elapsed = Date.now() - searchStartTime;
+                    const targetDelay = Math.floor(Math.random() * 1100) + 900; 
+                    const remainingDelay = Math.max(targetDelay - elapsed, 500);
+
+                    if (aiThinkingTimeout) clearTimeout(aiThinkingTimeout);
+
+                    aiThinkingTimeout = setTimeout(() => {
+                        isAiThinking = false;
+                        document.getElementById('ai-status-text').innerText = I18N_DATA[currentLang].ai_idle;
+                        document.getElementById('ai-pulse').classList.remove('thinking');
+                        dropPiece(bestMove);
+                    }, remainingDelay);
+                }
+            };
+        }
+
+        // === Particle Effects ===
+        function spawnSparks(x, y, color) {
+            for (let i = 0; i < 12; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 4 + 1;
+                sparkParticles.push({
+                    x, y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 1,
+                    life: 1.0,
+                    color
+                });
+            }
+        }
+
+        // === Constructivist Board & Piece Canvas Drawing ===
+        function updateAndDrawCanvas() {
+            bCtx.clearRect(0, 0, boardCanvas.width, boardCanvas.height);
+
+            // Grid Surface
+            bCtx.fillStyle = '#F4F1EA';
+            bCtx.fillRect(0, 0, boardCanvas.width, boardCanvas.height);
+
+            // Grid Slots
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cx = c * CELL_SIZE + CELL_SIZE / 2;
+                    const cy = r * CELL_SIZE + CELL_SIZE / 2;
+                    const radius = CELL_SIZE * 0.38;
+
+                    bCtx.fillStyle = '#E0DDD5';
+                    bCtx.beginPath();
+                    bCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+                    bCtx.fill();
+                    
+                    bCtx.strokeStyle = '#1E1E24';
+                    bCtx.lineWidth = 2;
+                    bCtx.stroke();
+                }
+            }
+
+            // Hover Beam
+            if (hoverCol !== null && !isGameOver && !isAiThinking && heights[hoverCol] < ROWS) {
+                const bx = hoverCol * CELL_SIZE;
+                const targetRow = ROWS - 1 - heights[hoverCol];
+                const gy = targetRow * CELL_SIZE + CELL_SIZE / 2;
+
+                bCtx.fillStyle = currentPlayer === 1 ? 'rgba(230, 57, 70, 0.2)' : 'rgba(29, 53, 87, 0.2)';
+                bCtx.fillRect(bx, 0, CELL_SIZE, boardCanvas.height);
+
+                bCtx.fillStyle = currentPlayer === 1 ? 'rgba(230, 57, 70, 0.6)' : 'rgba(29, 53, 87, 0.6)';
+                bCtx.beginPath();
+                bCtx.arc(hoverCol * CELL_SIZE + CELL_SIZE / 2, gy, CELL_SIZE * 0.38, 0, Math.PI * 2);
+                bCtx.fill();
+                bCtx.strokeStyle = '#1E1E24';
+                bCtx.lineWidth = 2;
+                bCtx.stroke();
+            }
+
+            // Hint Beam
+            if (hintCol !== null && heights[hintCol] < ROWS) {
+                const bx = hintCol * CELL_SIZE;
+                bCtx.fillStyle = 'rgba(255, 183, 3, 0.35)';
+                bCtx.fillRect(bx, 0, CELL_SIZE, boardCanvas.height);
+            }
+
+            // Fixed Board Pieces
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const p = board[r][c];
+                    if (p !== 0) {
+                        const isAnimating = activeAnimations.some(a => a.col === c && a.row === r);
+                        if (!isAnimating) {
+                            drawPiece(c * CELL_SIZE + CELL_SIZE / 2, r * CELL_SIZE + CELL_SIZE / 2, p);
+                        }
+                    }
+                }
+            }
+
+            // Drop Physics Animation
+            for (let i = activeAnimations.length - 1; i >= 0; i--) {
+                const a = activeAnimations[i];
+                a.vy += a.gravity;
+                a.currentY += a.vy;
+
+                if (a.currentY >= a.targetY) {
+                    a.currentY = a.targetY;
+                    a.vy = -a.vy * 0.32;
+                    a.squish = 0.78;
+                    
+                    if (Math.abs(a.vy) < 1) {
+                        spawnSparks(a.col * CELL_SIZE + CELL_SIZE / 2, a.targetY, a.player === 1 ? '#FF2A6D' : '#3A0CA3');
+                        activeAnimations.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                bCtx.save();
+                bCtx.translate(a.col * CELL_SIZE + CELL_SIZE / 2, a.currentY);
+                bCtx.scale(1 / a.squish, a.squish);
+                drawPiece(0, 0, a.player);
+                bCtx.restore();
+
+                if (a.squish < 1.0) a.squish += 0.05;
+            }
+
+            // Spark particles
+            for (let i = sparkParticles.length - 1; i >= 0; i--) {
+                const sp = sparkParticles[i];
+                sp.x += sp.vx;
+                sp.y += sp.vy;
+                sp.life -= 0.05;
+                if (sp.life <= 0) { sparkParticles.splice(i, 1); continue; }
+
+                bCtx.fillStyle = sp.color;
+                bCtx.globalAlpha = sp.life;
+                bCtx.beginPath();
+                bCtx.fillRect(sp.x - 2, sp.y - 2, 5, 5);
+                bCtx.fill();
+                bCtx.globalAlpha = 1.0;
+            }
+
+            // Winning Line Ribbon
+            if (winningLine && winningLine.length >= 5) {
+                bCtx.strokeStyle = '#E63946';
+                bCtx.lineWidth = 10;
+                bCtx.beginPath();
+
+                winningLine.forEach(([r, c], idx) => {
+                    const px = c * CELL_SIZE + CELL_SIZE / 2;
+                    const py = r * CELL_SIZE + CELL_SIZE / 2;
+                    if (idx === 0) bCtx.moveTo(px, py);
+                    else bCtx.lineTo(px, py);
+                });
+                bCtx.stroke();
+
+                bCtx.strokeStyle = '#FFB703';
+                bCtx.lineWidth = 4;
+                bCtx.stroke();
+            }
+
+            requestAnimationFrame(updateAndDrawCanvas);
+        }
+
+        // Pure Solid Single-Color Piece Rendering
+        function drawPiece(cx, cy, player) {
+            const radius = CELL_SIZE * 0.38;
+            bCtx.save();
+
+            if (player === 1) {
+                // Solid Player 1 Piece (Vibrant Red-Pink)
+                bCtx.fillStyle = '#FF2A6D';
+                bCtx.beginPath();
+                bCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+                bCtx.fill();
+
+                bCtx.strokeStyle = '#1E1E24';
+                bCtx.lineWidth = 3;
+                bCtx.stroke();
+            } else {
+                // Solid Player 2 Piece (Deep Ultramarine-Purple)
+                bCtx.fillStyle = '#3A0CA3';
+                bCtx.beginPath();
+                bCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+                bCtx.fill();
+
+                bCtx.strokeStyle = '#1E1E24';
+                bCtx.lineWidth = 3;
+                bCtx.stroke();
+            }
+
+            bCtx.restore();
+        }
+
+        // === Core Game Operations ===
+        function checkWin(r, c, p) {
+            const directions = [
+                [[0, 1], [0, -1]],
+                [[1, 0], [-1, 0]],
+                [[1, 1], [-1, -1]],
+                [[1, -1], [-1, 1]]
+            ];
+
+            for (const d of directions) {
+                let line = [[r, c]];
+                for (const [dr, dc] of d) {
+                    let nr = r + dr;
+                    let nc = c + dc;
+                    while (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc] === p) {
+                        line.push([nr, nc]);
+                        nr += dr;
+                        nc += dc;
+                    }
+                }
+                if (line.length >= 5) return line;
+            }
+            return null;
+        }
+
+        function dropPiece(col) {
+            if (isGameOver || isAiThinking) return;
+            if (col < 0 || col >= COLS || heights[col] >= ROWS) return;
+
+            hintCol = null;
+            const row = ROWS - 1 - heights[col];
+            board[row][col] = currentPlayer;
+            heights[col]++;
+
+            playSound('drop');
+
+            activeAnimations.push({
+                col,
+                row,
+                player: currentPlayer,
+                currentY: 0,
+                targetY: row * CELL_SIZE + CELL_SIZE / 2,
+                vy: 0,
+                gravity: 1.8,
+                squish: 1.0
+            });
+
+            moveHistory.push({ col, row, player: currentPlayer });
+            updateMoveHistoryUI();
+
+            const winLine = checkWin(row, col, currentPlayer);
+            if (winLine) {
+                isGameOver = true;
+                winningLine = winLine;
+                stopTimer();
+                playSound('win');
+                setTimeout(() => showEndModal(currentPlayer), 600);
+                return;
+            }
+
+            if (moveHistory.length === ROWS * COLS) {
+                isGameOver = true;
+                stopTimer();
+                setTimeout(() => showEndModal(0), 600);
+                return;
+            }
+
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            updateTurnUI();
+
+            if (!isGameOver && gameMode === 'pvai' && currentPlayer !== firstPlayer) {
+                triggerAiMove();
+            }
+        }
+
+        function undoMove() {
+            if (isAiThinking || moveHistory.length === 0) return;
+
+            const stepsToUndo = (gameMode === 'pvai' && moveHistory.length >= 2 && !isGameOver) ? 2 : 1;
+            
+            for (let i = 0; i < stepsToUndo; i++) {
+                if (moveHistory.length === 0) break;
+                const last = moveHistory.pop();
+                board[last.row][last.col] = 0;
+                heights[last.col]--;
+            }
+
+            isGameOver = false;
+            winningLine = null;
+            if (moveHistory.length > 0) {
+                currentPlayer = moveHistory[moveHistory.length - 1].player === 1 ? 2 : 1;
+            } else {
+                currentPlayer = firstPlayer;
+            }
+
+            updateMoveHistoryUI();
+            updateTurnUI();
+            startTimer();
+        }
+
+        function requestHint() {
+            if (isGameOver || isAiThinking) return;
+            
+            for (let c = 0; c < COLS; c++) {
+                if (heights[c] < ROWS) {
+                    const r = ROWS - 1 - heights[c];
+                    board[r][c] = currentPlayer;
+                    heights[c]++;
+                    
+                    const win = checkWin(r, c, currentPlayer);
+                    board[r][c] = 0;
+                    heights[c]--;
+
+                    if (win) {
+                        hintCol = c;
+                        playSound('click');
+                        return;
+                    }
+                }
+            }
+
+            const colOrder = [4, 3, 5, 2, 6, 1, 7, 0, 8];
+            for (const c of colOrder) {
+                if (heights[c] < ROWS) {
+                    hintCol = c;
+                    playSound('click');
+                    break;
+                }
+            }
+        }
+
+        function restartGame() {
+            if (aiThinkingTimeout) clearTimeout(aiThinkingTimeout);
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            heights = Array(COLS).fill(0);
+            moveHistory = [];
+            activeAnimations = [];
+            sparkParticles = [];
+            winningLine = null;
+            hintCol = null;
+            isGameOver = false;
+            isAiThinking = false;
+            currentPlayer = firstPlayer;
+
+            updateMoveHistoryUI();
+            updateTurnUI();
+            resetTimer();
+            startTimer();
+
+            document.getElementById('ai-status-text').innerText = I18N_DATA[currentLang].ai_idle;
+            document.getElementById('ai-pulse').classList.remove('thinking');
+            document.getElementById('ai-depth').innerText = '-';
+            document.getElementById('ai-nodes').innerText = '-';
+            document.getElementById('ai-time').innerText = '-';
+            document.getElementById('ai-eval').innerText = '-';
+
+            if (gameMode === 'pvai' && currentPlayer !== 1) {
+                triggerAiMove();
+            }
+        }
+
+        // === UI & Control Handlers ===
+        function updateTurnUI() {
+            const turnDot = document.getElementById('turn-dot');
+            const turnText = document.getElementById('turn-text');
+            
+            if (currentPlayer === 1) {
+                turnDot.className = 'player-dot p1';
+                turnText.innerText = I18N_DATA[currentLang].p1_turn;
+            } else {
+                turnDot.className = 'player-dot p2';
+                turnText.innerText = (gameMode === 'pvai' && firstPlayer === 1) 
+                    ? I18N_DATA[currentLang].ai_turn 
+                    : I18N_DATA[currentLang].p2_turn;
+            }
+        }
+
+        function updateMoveHistoryUI() {
+            const container = document.getElementById('move-history');
+            container.innerHTML = moveHistory.map((m, idx) => `
+                <div class="history-item">
+                    <span class="num">#${idx + 1}</span>
+                    <span>Player ${m.player}</span>
+                    <span class="coord">Col ${m.col + 1}, Row ${ROWS - m.row}</span>
+                </div>
+            `).reverse().join('');
+        }
+
+        function setGameMode(mode) {
+            gameMode = mode;
+            document.getElementById('mode-pvai').classList.toggle('active', mode === 'pvai');
+            document.getElementById('mode-pvp').classList.toggle('active', mode === 'pvp');
+            
+            document.getElementById('first-move-group').style.display = mode === 'pvai' ? 'flex' : 'none';
+            document.getElementById('difficulty-group').style.display = mode === 'pvai' ? 'flex' : 'none';
+            
+            restartGame();
+        }
+
+        function setFirstPlayer(p) {
+            firstPlayer = p;
+            document.getElementById('first-player').classList.toggle('active', p === 1);
+            document.getElementById('first-ai').classList.toggle('active', p === 2);
+            restartGame();
+        }
+
+        function setDifficulty(diff) {
+            aiDifficulty = diff;
+            document.getElementById('diff-normal').classList.toggle('active', diff === 'normal');
+            document.getElementById('diff-hard').classList.toggle('active', diff === 'hard');
+            document.getElementById('diff-master').classList.toggle('active', diff === 'master');
+        }
+
+        function changeLanguage(lang) {
+            if (!I18N_DATA[lang]) return;
+            currentLang = lang;
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (I18N_DATA[lang][key]) {
+                    el.innerHTML = I18N_DATA[lang][key];
+                }
+            });
+
+            updateTurnUI();
+        }
+
+        function startTimer() {
+            stopTimer();
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+                const secs = String(secondsElapsed % 60).padStart(2, '0');
+                document.getElementById('game-timer').innerText = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        function resetTimer() {
+            stopTimer();
+            secondsElapsed = 0;
+            document.getElementById('game-timer').innerText = '00:00';
+        }
+
+        // === Event Listeners ===
+        boardCanvas.addEventListener('mousemove', (e) => {
+            const rect = boardCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            hoverCol = Math.floor(x / (rect.width / COLS));
+        });
+
+        boardCanvas.addEventListener('mouseleave', () => {
+            hoverCol = null;
+        });
+
+        boardCanvas.addEventListener('click', (e) => {
+            const rect = boardCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const col = Math.floor(x / (rect.width / COLS));
+            if (col >= 0 && col < COLS) {
+                dropPiece(col);
+            }
+        });
+
+        boardCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const rect = boardCanvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const x = touch.clientX - rect.left;
+            const col = Math.floor(x / (rect.width / COLS));
+            if (col >= 0 && col < COLS) {
+                dropPiece(col);
+            }
+        }, { passive: false });
+
+        // === Modal Handlers ===
+        function showEndModal(winner) {
+            const icon = document.getElementById('end-modal-icon');
+            const title = document.getElementById('end-modal-title');
+            const desc = document.getElementById('end-modal-desc');
+            const modal = document.getElementById('end-modal');
+
+            if (winner === 1) {
+                icon.innerText = '🏆';
+                icon.style.color = 'var(--p1-color)';
+                title.innerText = I18N_DATA[currentLang].win_p1;
+                desc.innerText = I18N_DATA[currentLang].win_desc_p1;
+            } else if (winner === 2) {
+                if (gameMode === 'pvai' && firstPlayer === 1) {
+                    icon.innerText = '🤖';
+                    icon.style.color = 'var(--blue-electric)';
+                    title.innerText = I18N_DATA[currentLang].win_ai;
+                    desc.innerText = I18N_DATA[currentLang].win_desc_ai;
+                } else {
+                    icon.innerText = '🏆';
+                    icon.style.color = 'var(--p2-color)';
+                    title.innerText = I18N_DATA[currentLang].win_p2;
+                    desc.innerText = I18N_DATA[currentLang].win_desc_p1;
+                }
+            } else {
+                icon.innerText = '🤝';
+                icon.style.color = 'var(--yellow-ochre)';
+                title.innerText = I18N_DATA[currentLang].win_draw;
+                desc.innerText = I18N_DATA[currentLang].win_desc_draw;
+            }
+
+            modal.classList.add('active');
+        }
+
+        function openRulesModal() {
+            document.getElementById('rules-modal').classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // Boot
+        updateAndDrawCanvas();
+        changeLanguage('en');
+        restartGame();
     </script>
 </body>
 </html>
